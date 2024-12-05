@@ -32,3 +32,6 @@ comments:
 
 plugins:
  - jekyll-feed
+
+gems:
+ - jekyll-livereload
