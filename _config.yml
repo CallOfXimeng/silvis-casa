@@ -2,6 +2,7 @@ title: "虚拟松林里的小屋"
 author: "Ling"
 description: "@Ling, IHEP, Beijing"
 permalink: /:title/
+mathjax: true
 lang: "zh-cn"
 excerpt_separator: "\n\n\n"
 date_format: "%B %d, %Y"
