@@ -2,6 +2,8 @@
 title:  "从课程表到相关度分析——用热力图做三维数据可视化"
 mathjax: true
 layout: post
+tags: [数值计算]
+image: /assets/figs/DSCF5411.webp
 categories: media
 ---
 

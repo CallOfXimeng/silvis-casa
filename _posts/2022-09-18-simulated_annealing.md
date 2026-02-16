@@ -1,6 +1,10 @@
 ---
 title:  "十分不依赖数学的求极值算法——模拟退火(simulated annealing)算法"
+mathjax: true
 layout: post
+tags: [算法, 数值计算]
+image: /assets/figs/DSCF4632.webp
+categories: media
 ---
 
 最近被问到一个问题，是关于线性拟合的。但是不巧，我忘记了最小二乘法的公式表达，虽然这是一个很简单的求导再解一次方程，但在手头没有草稿纸的情况下，我还是口算不出来的。在忘记了数学的情况下，总还是有办法去求极值的，比如用梯度下降法去找误差函数

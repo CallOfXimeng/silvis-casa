@@ -4,11 +4,23 @@ layout: default
 
 <article>
   {% include meta.html post=page %}
+
+  {% if page.tags.size > 0 %}
+  <div class="post-tags-header">
+    {% for tag in page.tags %}
+    <a href="/tags#{{ tag | slugify }}" class="post-header-tag">
+      🔖 {{ tag }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   {{ content }}
+
   {% if page.comments != false and site.comments.isso or site.comments.disqus %}
-    <hr>
-    {% if site.comments.isso_domain %}<div id="isso-thread"></div>{% endif %}
-    {% if site.comments.disqus_shortname %}<div id="disqus_thread"></div>{% endif %}
-    <noscript>Please enable JavaScript to view comments.</noscript>
+  <hr>
+  {% if site.comments.isso_domain %}<div id="isso-thread"></div>{% endif %}
+  {% if site.comments.disqus_shortname %}<div id="disqus_thread"></div>{% endif %}
+  <noscript>Please enable JavaScript to view comments.</noscript>
   {% endif %}
 </article>

@@ -1,6 +1,8 @@
 ---
-title:  "Bohr-Sommerfeld-Landau-Lifshitz approach to quantize a black hole"
+title:  "Tidal expansion on gravitational potential of binary systems"
 mathjax: true
+tags: [引力, 天体物理, 双星系统]
+image: /assets/figs/P1146912.webp
 layout: post
 categories: media
 ---
