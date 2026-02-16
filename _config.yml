@@ -36,3 +36,7 @@ plugins:
 
 gems:
  - jekyll-livereload
+
+kramdown:
+  parse_block_html: true
+  parse_span_html: true # 确保 span 级的 HTML 被解析

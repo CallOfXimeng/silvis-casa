@@ -2,27 +2,61 @@ body
   display: flex
   flex-direction: column
 
+/* 文章正文容器：增加毛玻璃质感 */
 article
   flex-grow: 1
+  /* 1. 半透明背景 + 毛玻璃模糊 */
+  background: rgba(255, 255, 255, 0.4)
+  backdrop-filter: blur(10px)
+  -webkit-backdrop-filter: blur(10px)
+  
+  /* 2. 圆角矩形与稍粗的边框 */
+  border: 2px solid rgba(255, 255, 255, 0.5)
+  border-radius: 20px
+  
+  /* 3. 布局调整：限制阅读宽度并居中，露出背景纹理 */
+  max-width: 900px
+  width: 90%
+  margin: 2rem auto
+  
+  /* 4. 阴影增加悬浮感 */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05)
+  
+  /* 保持内容不溢出 */
+  overflow: hidden
 
+/* 顶部、正文、底部的基础内边距调整 */
 body > header, body > footer
   display: flex
   flex-wrap: wrap
   align-items: center
   justify-content: space-between
-
-body > header, body > article, body > footer
   padding: 1.5em
 
+/* 正文内容的内边距独立设置，增加呼吸感 */
+body > article
+  padding: 2.5em 3em
+
 article header
-  margin-bottom: 1.5em
+  margin-bottom: 2em
+  /* 如果标题下有分隔线，可以微调颜色 */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05)
+  padding-bottom: 1.5em
 
 article header h1
-  font-size: 1.7em
-  margin: 0 0 .1em
+  font-size: 2em      /* 稍微调大标题 */
+  margin: 0 0 .2em
+  color: #2c3e50     /* 深色标题更稳重 */
 
 nav
   margin: .5em -1.2em
 
 nav a
   margin: .5em 1.2em
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark)
+  article
+    background: rgba(30, 32, 35, 0.75)
+    border-color: rgba(255, 255, 255, 0.1)
+    color: #e0e0e0
