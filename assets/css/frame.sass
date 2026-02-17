@@ -224,9 +224,20 @@ body > header
     grid-template-columns: repeat(2, 1fr)
 
 @media (max-width: 768px)
+  /* 1. 缩短顶部 Hero 区堆叠后的间距 */
   .hero-section
     flex-direction: column
+    gap: 10px            /* 从 15px 缩减 */
+    padding: 15px 4% 5px /* 略微减少上下内边距 */
     .sidebar-mini
       width: 100%
+  
+  /* 2. 缩短标签云容器的边距 */
+  .tag-index-container
+    margin: 10px auto    /* 从 15px 缩减 */
+
+  /* 3. 核心：缩短文章卡片之间的纵向间距 */
   .post-grid-three-col
     grid-template-columns: 1fr
+    gap: 12px            /* 从 20px 缩减到 12px */
+    padding-bottom: 20px /* 底部留白也相应减小 */
