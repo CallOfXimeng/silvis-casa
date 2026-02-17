@@ -49,7 +49,7 @@ title: "Home"
         <li><a href="https://github.com/CallOfXimeng" target="_blank">GitHub</a></li>
         <li><a href="https://gitee.com/lingfluoride" target="_blank">Gitee</a></li>
         <li><a href="https://inspirehep.net/authors/2921881?ui-citation-summary=true" target="_blank">Inspire</a></li>
-        <li><a href="{{ '/photos/' | relative_url }}">📷 瞬间</a></li>
+        <!-- <li><a href="{{ '/photos/' | relative_url }}">📷 瞬间</a></li> -->
       </ul>
     </div>
   </aside>
@@ -60,7 +60,7 @@ title: "Home"
 
   <aside class="sidebar-mini right">
     <div class="sidebar-box">
-      <h3 class="sidebar-title">📅 归档索引</h3>
+      <h3 class="sidebar-title">📅 索引</h3>
       <ul class="archive-list">
         {% assign postsByYear = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}
         {% for year in postsByYear limit: 5 %}
