@@ -1,14 +1,129 @@
 ---
 layout: default
-title: Tags
+title: "标签索引"
+permalink: /tags/
 ---
 
-{% assign tags = site.tags | sort %}
-{% for tag in tags %}
-<h2 id="{{ tag[0] | slugify }}">{{ tag[0] }}</h2>
-<ul>
-    {% for post in tag[1] %}
-    <li><a href="{{ post.url }}">{{ post.title }}</a> ({{ post.date | date: "%Y-%m-%d" }})</li>
-    {% endfor %}
-</ul>
-{% endfor %}
+
+<style>
+  .tags-header {
+    text-align: center;
+    margin: 40px 0;
+  }
+
+  .tag-cloud-page {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 50px;
+  }
+
+  .tag-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(0, 74, 153, 0.1);
+    color: #004a99;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    border: 1px solid rgba(0, 74, 153, 0.2);
+  }
+
+  .tag-btn:hover {
+    background: #004a99;
+    color: white;
+  }
+
+  /* 文章列表样式 */
+  .tag-group {
+    margin-bottom: 40px;
+    display: none;
+  }
+
+  .tag-group:target {
+    display: block;
+    animation: fadeIn 0.5s;
+  }
+
+  /* 只有选中的锚点才显示 */
+
+  .tag-title {
+    font-size: 1.5rem;
+    border-left: 5px solid #ff9800;
+    padding-left: 15px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+
+  .post-list-by-tag {
+    list-style: none;
+    padding: 0;
+  }
+
+  .post-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #ddd;
+  }
+
+  .post-item a {
+    text-decoration: none;
+    color: #2c3e50;
+    font-weight: 500;
+  }
+
+  .post-item span {
+    color: #999;
+    font-size: 0.85rem;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+</style>
+
+<div class="tags-header">
+  <h1>🔖 标签云</h1>
+</div>
+
+<div class="tag-cloud-page">
+  {% assign sorted_tags = site.tags | sort %}
+  {% for tag in sorted_tags %}
+  <a href="#{{ tag[0] | slugify }}" class="tag-btn">
+    {{ tag[0] }} <sup>{{ tag[1].size }}</sup>
+  </a>
+  {% endfor %}
+</div>
+
+<hr>
+
+<div class="tag-sections">
+  {% for tag in sorted_tags %}
+  <section class="tag-group" id="{{ tag[0] | slugify }}">
+    <h2 class="tag-title">正在查看：#{{ tag[0] }}</h2>
+    <ul class="post-list-by-tag">
+      {% for post in tag[1] %}
+      <li class="post-item">
+        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+        <span>{{ post.date | date: "%Y-%m-%d" }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</div>
+
+<script>
+  // 初始进入页面时，如果没有锚点，默认显示第一个或提示
+  if (!window.location.hash && document.querySelector('.tag-group')) {
+    // 也可以选择默认不显示，或者显示“请选择标签”
+  }
+</script>

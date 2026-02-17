@@ -89,7 +89,7 @@ title: "Home"
   </aside>
 
   <div class="top-figure-container">
-    <img id="random-topfig" src="/assets/P1109838.jpg" alt="Top Figure" />
+    <img id="random-topfig" src="{{ '/assets/P1109838.jpg' | relative_url }}" alt="Top Figure" />
   </div>
 
   <aside class="sidebar-mini right">
@@ -99,7 +99,7 @@ title: "Home"
         {% assign postsByYear = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}
         {% for year in postsByYear limit: 5 %}
         <li>
-          <a href="/archive#{{ year.name }}">
+          <a href="{{ '/archive/#' | append: year_id | relative_url }}">
             <span class="year-label">{{ year.name }}年</span>
             <span class="year-count">{{ year.items.size }}</span>
           </a>
@@ -126,24 +126,21 @@ title: "Home"
     {% assign parts = entry | split: "|" %}
     {% assign count = parts[0] | plus: 0 %}
     {% assign tag = parts[1] %}
-    <a href="/tags#{{ tag | slugify }}" class="tag-index-item">
+    <a href="{{ '/tags/#' | append: tag_id | relative_url }}" class="tag-index-item">
       <span class="tag-name">🔖 {{ tag }}</span>
       <span class="tag-count">{{ count }}</span>
     </a>
     {% endfor %}
-    <a href="/tags" style="font-size: 0.8rem; color: #888; text-decoration: none; margin-left: 10px;">更多...</a>
+    <a href="{{ '/tags/' | relative_url }}"
+      style="font-size: 0.8rem; color: #888; text-decoration: none; margin-left: 10px;">更多...</a>
   </div>
 </div>
 
 <div class="post-grid-three-col">
-  {% comment %}
-  排序算法：先按日期倒序排好，再手动拆分置顶和非置顶
-  {% endcomment %}
   {% assign all_posts = site.posts | sort: "date" | reverse %}
   {% assign sticky_posts = all_posts | where: "sticky", true %}
   {% assign normal_posts = all_posts | where_exp: "item", "item.sticky != true" %}
 
-  {% comment %} 1. 先渲染置顶文章 {% endcomment %}
   {% for post in sticky_posts %}
   <article class="post-card pinned {% if post.wide %}wide{% endif %}">
     <a href="{{ post.url | relative_url }}" class="post-card-image">
@@ -160,7 +157,6 @@ title: "Home"
   </article>
   {% endfor %}
 
-  {% comment %} 2. 再渲染普通文章 {% endcomment %}
   {% for post in normal_posts %}
   <article class="post-card {% if post.wide %}wide{% endif %}">
     <a href="{{ post.url | relative_url }}" class="post-card-image">
@@ -180,6 +176,7 @@ title: "Home"
 
 <script>
   const images = ['fig1.webp', 'fig2.webp', 'fig3.webp', 'fig4.webp'];
+  // 修正：脚本内的路径补全
   const path = '{{ "/assets/topfig/" | relative_url }}';
   const imgElement = document.getElementById('random-topfig');
   if (images.length > 0) {
