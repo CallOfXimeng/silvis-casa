@@ -40,3 +40,6 @@ gems:
 kramdown:
   parse_block_html: true
   parse_span_html: true # 确保 span 级的 HTML 被解析
+
+baseurl: "/silvis-casa" # 你的仓库名称，必须以 / 开头，结尾不要斜杠
+url: "https://github.com/CallOfXimeng/silvis-casa" # 你的域名

@@ -1,0 +1,152 @@
+---
+layout: default
+---
+
+<style>
+    /* 页面背景建议带一点色彩或纹理，毛玻璃效果会更明显 */
+    body {
+        background-color: #f5f5f7;
+    }
+
+    .photo-stream {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        /* 开启外层双栏布局 */
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+
+    /* 响应式：手机端回到单栏 */
+    @media (max-width: 768px) {
+        .photo-stream {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .photo-post {
+        /* 毛玻璃 + 橙黄色渐变卡片 */
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.7), rgba(255, 230, 180, 0.5));
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 165, 0, 0.2);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 32px rgba(255, 140, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s ease;
+    }
+
+    .photo-post:hover {
+        transform: translateY(-5px);
+    }
+
+    .photo-meta {
+        margin-bottom: 12px;
+        color: #e67e22;
+        /* 深橙色文字 */
+        font-weight: bold;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+    }
+
+    /* 内部九宫格 */
+    .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-bottom: 15px;
+    }
+
+    .grid-item {
+        aspect-ratio: 1 / 1;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .grid-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.4s ease;
+    }
+
+    .grid-item img:hover {
+        transform: scale(1.1);
+    }
+
+    .more-mask {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        pointer-events: none;
+        backdrop-filter: blur(2px);
+    }
+
+    .photo-content {
+        line-height: 1.5;
+        color: #444;
+        font-size: 0.95rem;
+    }
+
+    .photo-content p {
+        margin: 0;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/luminous-lightbox/2.3.2/luminous-basic.min.css">
+
+<div class="photo-stream">
+    {% if site.data.moments %}
+    {% assign sorted_moments = site.data.moments | sort: 'date' | reverse %}
+    {% for moment in sorted_moments %}
+    <div class="photo-post">
+        <div class="photo-meta">📅 {{ moment.date }}</div>
+
+        <div class="photo-grid">
+            {% assign folder_path = "/assets/img/" | append: moment.folder | append: "/" %}
+            {% assign images = site.static_files | where_exp: "item", "item.path contains folder_path" %}
+
+            {% for img_file in images limit: 9 %}
+            <div class="grid-item">
+                <a href="{{ img_file.path | relative_url }}" class="zoom-link">
+                    <img src="{{ img_file.path | relative_url }}" alt="Photo">
+                </a>
+                {% if forloop.index == 9 and images.size > 9 %}
+                <div class="more-mask">+{{ images.size | minus: 8 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="photo-content">
+            {{ moment.text | markdownify }}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>还没有发布瞬间哦。</p>
+    {% endif %}
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/luminous-lightbox/2.3.2/Luminous.min.js"></script>
+<script>
+    // 初始化灯箱效果
+    window.onload = function () {
+        new LuminousGallery(document.querySelectorAll('.zoom-link'));
+    };
+</script>

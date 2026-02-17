@@ -5,22 +5,33 @@ title: "Home"
 
 <style>
   .post-card.pinned {
-    border: 2px solid #3498db;
-    /* 醒目的蓝色边框 */
-    background: linear-gradient(145deg, #ffffff, #f0f7ff);
-    /* 浅蓝色渐变底色 */
-    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
-    /* 蓝色投影 */
+    /* 橙黄色边框 */
+    border: 1px solid rgba(255, 165, 0, 0.3);
+
+    /* 橙黄色半透明渐变（毛玻璃必须配合半透明） */
+    background: linear-gradient(145deg,
+        rgba(255, 255, 255, 0.7),
+        rgba(255, 230, 180, 0.5));
+
+    /* 核心：毛玻璃模糊效果 */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    /* 兼容 Safari */
+
+    /* 暖色调投影 */
+    box-shadow: 0 8px 32px rgba(255, 140, 0, 0.15);
+
     position: relative;
     overflow: hidden;
+    z-index: 1;
   }
 
   .post-card.pinned::before {
-    content: "📌 置顶";
+    content: "📌 Top";
     position: absolute;
     top: 10px;
     right: -25px;
-    background: #3498db;
+    background: #ff9800;
     color: white;
     padding: 2px 30px;
     transform: rotate(45deg);
@@ -38,6 +49,7 @@ title: "Home"
         <li><a href="https://github.com/CallOfXimeng" target="_blank">GitHub</a></li>
         <li><a href="https://gitee.com/lingfluoride" target="_blank">Gitee</a></li>
         <li><a href="https://inspirehep.net/authors/2921881?ui-citation-summary=true" target="_blank">Inspire</a></li>
+        <li><a href="{{ '/photos/' | relative_url }}">📷 瞬间</a></li>
       </ul>
     </div>
   </aside>
