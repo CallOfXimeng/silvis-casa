@@ -20,7 +20,7 @@ minimal: false             # use a dark header
 navigation:                # accepts {file, title, url, icon, sidebaricon}
   - {file: "MENU.md", title: "📓 文集"}
   - {file: "README.md", title: "💻 关于"}
-  - {file: "photo.md", title: "📷 瞬间"}
+  - {file: "photos.md", title: "📷 瞬间"}
  
 
 external:                  # shows a footer with social links - for available icons see fontawesome.com/icons
