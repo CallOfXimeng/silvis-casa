@@ -126,6 +126,10 @@ title: "Home"
     {% assign parts = entry | split: "|" %}
     {% assign count = parts[0] | plus: 0 %}
     {% assign tag = parts[1] %}
+
+    {% comment %} 关键修复：定义 tag_id 变量 {% endcomment %}
+    {% assign tag_id = tag | slugify %}
+
     <a href="{{ '/tags/#' | append: tag_id | relative_url }}" class="tag-index-item">
       <span class="tag-name">🔖 {{ tag }}</span>
       <span class="tag-count">{{ count }}</span>

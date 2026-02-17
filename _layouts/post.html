@@ -8,7 +8,9 @@ layout: default
   {% if page.tags.size > 0 %}
   <div class="post-tags-header">
     {% for tag in page.tags %}
-    <a href="/tags#{{ tag | slugify }}" class="post-header-tag">
+    {% comment %} 先计算出 slug 化的 ID，避免 Liquid 嵌套报错 {% endcomment %}
+    {% assign tag_id = tag | slugify %}
+    <a href="{{ '/tags/#' | append: tag_id | relative_url }}" class="post-header-tag">
       🔖 {{ tag }}
     </a>
     {% endfor %}
