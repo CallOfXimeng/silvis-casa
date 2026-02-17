@@ -1,11 +1,126 @@
 ---
-permalink: /404.html
-title: "404: Page not found"
 layout: default
-sitemap: false
+title: "404 - 迷失在松林深处"
+permalink: /404.html
 ---
 
-<article>
-  <header><h1>404</h1></header>
-  <p>Page not found</p>
-</article>
+<style>
+  .error-container {
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  /* 404 数字的艺术设计 */
+  .error-code {
+    font-size: 8rem;
+    font-weight: 900;
+    background: linear-gradient(145deg, #ff9800, #e67e22);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+    line-height: 1;
+    position: relative;
+    display: inline-block;
+  }
+
+  /* 模拟松林里摇晃的小树 */
+  .forest-animation {
+    font-size: 3rem;
+    margin: 20px 0;
+    animation: sway 3s ease-in-out infinite;
+  }
+
+  @keyframes sway {
+
+    0%,
+    100% {
+      transform: rotate(-5deg);
+    }
+
+    50% {
+      transform: rotate(5deg);
+    }
+  }
+
+  .error-message {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 165, 0, 0.2);
+    padding: 30px;
+    border-radius: 20px;
+    margin-top: -20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .error-message h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+  }
+
+  .error-message p {
+    color: #666;
+    line-height: 1.6;
+  }
+
+  /* 交互按钮 */
+  .back-home {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 30px;
+    background: #004a99;
+    color: white !important;
+    text-decoration: none;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    font-weight: bold;
+  }
+
+  .back-home:hover {
+    background: #e67e22;
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(230, 126, 34, 0.3);
+  }
+
+  /* 自动搜索提示（可选） */
+  .search-hint {
+    margin-top: 40px;
+    font-size: 0.9rem;
+    color: #999;
+  }
+</style>
+
+<div class="error-container">
+  <div class="forest-animation">🌲 🦉 🌲</div>
+  <h1 class="error-code">404</h1>
+
+  <div class="error-message">
+    <h2>噢！你好像在松林里走丢了</h2>
+    <p>
+      这片区域尚未被开发，或者那只送信的猫头鹰把地址衔错了。<br>
+      你现在站的地方只有松针和落叶。
+    </p>
+
+    <p id="funny-quote"><i>“不是所有流浪的人都迷失了方向，但你现在肯定是。”</i></p>
+
+    <a href="{{ '/' | relative_url }}" class="back-home">顺着小径回到小屋 (首页)</a>
+  </div>
+
+  <div class="search-hint">
+    或者，你可以去 <a href="{{ '/tags/' | relative_url }}">标签云</a> 看看，那里有通往其他地方的地图。
+  </div>
+</div>
+
+<script>
+  // 每次进入页面随机显示一句话
+  const quotes = [
+    "“不是所有流浪的人都迷失了方向，但你现在肯定是。”",
+    "“这里空空如也，连松果都没有一个。”",
+    "“你可能走进了一个平行的虚拟时空。”",
+    "“如果你在这里见到了护林员，请替我向他问好。”",
+    "“404：这是一个关于虚无的哲学命题。”"
+  ];
+  document.getElementById('funny-quote').innerHTML = `<i>${quotes[Math.floor(Math.random() * quotes.length)]}</i>`;
+</script>
