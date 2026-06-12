@@ -39,6 +39,17 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 #card-log .card-entry{color:#ccc;white-space:nowrap;display:flex;align-items:center;gap:4px}
 #card-log .card-entry .cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
+#rotate-overlay{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#rotate-overlay.active{display:flex}
+#rotate-overlay .icon{font-size:64px;animation:rotateHint 1.5s ease-in-out infinite}
+#rotate-overlay p{color:#fff;font-size:18px;text-align:center}
+@keyframes rotateHint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+@media(orientation:portrait){#rotate-overlay.mobile{display:flex}}
+@media(orientation:landscape){#rotate-overlay.mobile{display:none}}
+
+#fullscreen-btn{pointer-events:auto;background:rgba(0,0,0,0.7);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:4px 8px;font-size:14px;cursor:pointer;backdrop-filter:blur(8px);transition:transform 0.1s;line-height:1}
+#fullscreen-btn:hover{transform:scale(1.1);border-color:#ffd700}
+
 #incident-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.92) 30%);padding:60px 20px 20px;z-index:20;display:none;flex-direction:column;gap:10px}
 #incident-overlay.active{display:flex}
 #incident-desc{color:#fff;font-size:15px;line-height:1.5;text-align:center;padding:8px 16px;background:rgba(231,76,60,0.15);border-radius:8px;border-left:3px solid #e74c3c}
@@ -145,12 +156,14 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   </div>
   <div id="ui-right">
     <button id="pause-btn" onclick="togglePause()" title="暂停/继续">⏸️</button>
+    <button id="fullscreen-btn" onclick="toggleFullscreen()" title="全屏">⛶</button>
     <div class="rating-display"><span>裁判评分</span><span id="rating-value">--</span></div>
     <div id="card-log"><span class="card-title">📋 出牌记录</span></div>
   </div>
 </div>
 <div id="feedback-toast"></div>
 <div id="pause-overlay"><span>⏸️ 已暂停</span></div>
+<div id="rotate-overlay"><span class="icon">📱</span><p>请旋转屏幕<br>横屏体验更佳</p></div>
 <div id="added-time-overlay"><h3 id="added-title">⏱️ 伤停补时</h3><div class="info" id="added-info"></div><div id="added-buttons"></div></div>
 <div id="incident-overlay">
   <div id="timer-bar"><div id="timer-bar-fill"></div></div>
@@ -217,6 +230,8 @@ const addedIndicator=document.getElementById('added-indicator');
 const addedMinutes=document.getElementById('added-minutes');
 const pauseBtn=document.getElementById('pause-btn');
 const pauseOverlay=document.getElementById('pause-overlay');
+const fullscreenBtn=document.getElementById('fullscreen-btn');
+const rotateOverlay=document.getElementById('rotate-overlay');
 
 // Speed selector
 document.querySelectorAll('#speed-buttons button').forEach(btn=>{
@@ -739,7 +754,14 @@ function resetState(){
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
   feedbackToast.classList.remove('show');hideIncidentUI();
 }
-function startGame(){titleScreen.style.display='none';resultScreen.classList.remove('active');resetState();initPlayers();ball.x=ball.tx=FW/2;ball.y=ball.ty=FH/2;ball.vx=0;ball.vy=0;ball.carrier=players.find(p=>p.team==='home'&&(p.role==='CM1'||p.role==='CM2'));updateScoreboard();updateTensionDisplay();lastFrameTime=0;requestAnimationFrame(gameLoop);}
+function startGame(){titleScreen.style.display='none';resultScreen.classList.remove('active');resetState();initPlayers();ball.x=ball.tx=FW/2;ball.y=ball.ty=FH/2;ball.vx=0;ball.vy=0;ball.carrier=players.find(p=>p.team==='home'&&(p.role==='CM1'||p.role==='CM2'));updateScoreboard();updateTensionDisplay();lastFrameTime=0;if(isMobile&&!document.fullscreenElement){document.documentElement.requestFullscreen().catch(()=>{});}requestAnimationFrame(gameLoop);}
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }else{
+    document.exitFullscreen();
+  }
+}
 function togglePause(){
   if(state==='title'||state==='fulltime'||state==='halftime') return;
   paused=!paused;
@@ -747,6 +769,9 @@ function togglePause(){
   if(paused) pauseOverlay.classList.add('active');
   else pauseOverlay.classList.remove('active');
 }
+// Detect mobile for rotate hint
+const isMobile=/Mobi|Android|iPhone/i.test(navigator.userAgent);
+if(isMobile) rotateOverlay.classList.add('mobile');
 function restartGame(){resultScreen.classList.remove('active');startGame();}
 
 drawField();initPlayers();players.forEach(p=>{p.x=p.tx;p.y=p.ty});drawPlayers();ball.x=ball.y=FW/2;drawBall();
