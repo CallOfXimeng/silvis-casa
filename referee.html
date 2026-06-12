@@ -760,9 +760,9 @@ function handleDecision(action){
   adjustTension(action,correct,inc);
   updateScoreboard();
   showFeedback(resultType,resultText);
-	  decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
-	  const L={playOn:'继续比赛',verbalWarning:'口头警告',freeKick:'任意球/点球',yellowCard:'黄牌',redCard:'红牌',goalStands:'进球有效',goalDisallowed:'进球无效'};
-	  decisionLog.push({d:inc.desc,c:L[action]||action,r:L[correct]||correct,t:resultType,m:Math.floor(gameTime)});
+    decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
+    const L={playOn:'继续比赛',verbalWarning:'口头警告',freeKick:'任意球/点球',yellowCard:'黄牌',redCard:'红牌',goalStands:'进球有效',goalDisallowed:'进球无效'};
+    decisionLog.push({d:inc.desc,c:L[action]||action,r:L[correct]||correct,t:resultType,m:Math.floor(gameTime)});
   state='feedback';feedbackTimer=FEEDBACK_MS;
 }
 function showFeedback(type,text){feedbackToast.className=type+' show';feedbackToast.textContent=text;setTimeout(()=>{feedbackToast.classList.remove('show');},FEEDBACK_MS-200);}
