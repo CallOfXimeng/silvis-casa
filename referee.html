@@ -9,8 +9,8 @@ layout: null
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;overflow-y:auto;padding:10px}
-#game-wrapper{position:relative;background:#16213e;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;max-width:950px;width:100%}
-canvas{display:block;width:100%;height:auto}
+#game-wrapper{position:relative;background:#16213e;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;max-width:950px;width:100%;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 #ui-layer{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;pointer-events:none;z-index:10;gap:10px}
 #ui-left{display:flex;flex-direction:column;gap:6px}
 #ui-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
@@ -55,6 +55,7 @@ canvas{display:block;width:100%;height:auto}
 #var-info.show{display:block}
 #decision-buttons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 #decision-buttons button{padding:10px 14px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s;color:#fff;min-width:75px}
+#decision-buttons button{touch-action:manipulation}
 #decision-buttons button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
 #decision-buttons button:active{transform:translateY(0)}
 #decision-buttons button:disabled{opacity:0.4;cursor:not-allowed;transform:none}
@@ -87,6 +88,39 @@ canvas{display:block;width:100%;height:auto}
 #result-screen .stats{color:#ccc;font-size:14px;text-align:center;line-height:2}
 #result-screen button{padding:12px 32px;font-size:16px;font-weight:700;background:#3498db;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:transform 0.15s}
 #result-screen button:hover{transform:scale(1.05)}
+@media(max-width:600px){
+  body{padding:4px}
+  #game-wrapper{border-radius:10px}
+  #ui-layer{padding:6px 8px;gap:6px}
+  .scorebug{padding:5px 8px;font-size:11px;gap:6px}
+  .scorebug .score{font-size:16px;min-width:22px}
+  .scorebug .clock{font-size:11px;padding:3px 6px;min-width:36px}
+  .scorebug .half{font-size:9px}
+  #tension-meter{padding:3px 8px;gap:5px}
+  #tension-meter .label{font-size:9px}
+  #tension-bar-outer{height:5px;min-width:40px}
+  #tension-value{font-size:10px}
+  .rating-display{padding:4px 8px;font-size:11px}
+  .rating-display span{font-size:9px}
+  #card-log{padding:4px 7px;font-size:10px;max-height:100px;min-width:80px}
+  #pause-btn{font-size:14px;padding:4px 8px}
+  #decision-buttons button{font-size:13px;padding:12px 12px;min-width:60px;flex:1 1 auto}
+  #decision-buttons{gap:5px}
+  #incident-overlay{padding:40px 12px 12px;gap:7px}
+  #incident-desc{font-size:13px;padding:6px 10px}
+  #feedback-toast{font-size:15px;padding:10px 18px}
+  #added-time-overlay{padding:20px;gap:12px}
+  #added-time-overlay h3{font-size:16px}
+  #added-buttons button{padding:10px 14px;font-size:14px}
+  #added-buttons{gap:6px}
+  #title-screen h1{font-size:24px}
+  #title-screen .subtitle{font-size:12px}
+  #title-screen .controls-info{font-size:10px}
+  #title-screen .start-btn{padding:12px 32px;font-size:16px}
+  #speed-buttons button{padding:8px 14px;font-size:12px}
+  #result-screen h2{font-size:22px}
+  #result-screen .stats{font-size:12px}
+}
 </style>
 </head>
 <body>
