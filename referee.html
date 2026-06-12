@@ -264,6 +264,7 @@ let addedDoneHalf1=false,addedDoneHalf2=false,halftimePause=false;
 let lastGoalTeam=null,lastGoalGameTime=-99;
 let pendingPostGoal=null;
 let paused=false;
+let homeAttacksRight=true; // flips at halftime
 
 // ==================== FORMATIONS ====================
 const FORMATIONS={
@@ -340,57 +341,100 @@ function drawBall(){
   ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.stroke();
 }
 
-// ==================== MOVEMENT AI (improved) ====================
+// ==================== HEATMAPS ====================
+const HEATMAPS={
+  'GK':{x:[.01,.08],y:[.20,.80]},
+  'LB':{x:[.06,.30],y:[.02,.22]}, 'CB1':{x:[.06,.28],y:[.22,.50]},
+  'CB2':{x:[.06,.28],y:[.50,.78]}, 'RB':{x:[.06,.30],y:[.78,.98]},
+  'LM':{x:[.20,.50],y:[.02,.25]}, 'CM1':{x:[.22,.55],y:[.18,.50]},
+  'CM2':{x:[.22,.55],y:[.50,.82]}, 'RM':{x:[.20,.50],y:[.75,.98]},
+  'ST1':{x:[.35,.68],y:[.22,.50]}, 'ST2':{x:[.35,.68],y:[.50,.78]},
+  'CDM1':{x:[.14,.38],y:[.22,.50]}, 'CDM2':{x:[.14,.38],y:[.50,.78]},
+  'CAM':{x:[.32,.58],y:[.25,.75]}, 'LW':{x:[.28,.58],y:[.02,.25]},
+  'ST':{x:[.35,.68],y:[.30,.70]}, 'RW':{x:[.28,.58],y:[.75,.98]},
+  'CM3':{x:[.22,.55],y:[.55,.85]},
+  'CB3':{x:[.06,.25],y:[.55,.85]},
+};
+function attackingDir(team){
+  const homeAtk=homeAttacksRight?1:-1;
+  return team==='home'?homeAtk:-homeAtk;
+}
+function heatmapX(p,xFrac){
+  const ad=attackingDir(p.team);
+  return FL+(ad===1?xFrac:1-xFrac)*(FR-FL);
+}
+function heatmapY(p,yFrac){
+  return FT+yFrac*(FB-FT);
+}
+
+// ==================== MOVEMENT AI (dynamic heatmap-based) ====================
 function updateBallAndPlayers(dt){
   if(state!=='playing') return;
-  // Ball carrier switching
-  if(Math.random()<0.015){
-    const fp=players.filter(p=>!p.redCard&&p.role!=='GK');
-    if(fp.length){ball.carrier=fp[Math.floor(Math.random()*fp.length)];}
+  // Smart passing: prefer nearby teammates in forward direction
+  if(!ball.carrier||ball.carrier.redCard||Math.random()<0.012){
+    const ad=ball.carrier?attackingDir(ball.carrier.team):0;
+    const candidates=players.filter(p=>!p.redCard&&p.role!=='GK'&&p!==ball.carrier);
+    // Prefer same-team players in forward direction, within 250px
+    if(ball.carrier&&candidates.length){
+      const sameTeam=candidates.filter(p=>p.team===ball.carrier.team);
+      const nearby=sameTeam.filter(p=>Math.hypot(ball.x-p.x,ball.y-p.y)<250);
+      const forward=nearby.filter(p=>(p.x-ball.x)*ad>0);
+      const passCandidates=forward.length?forward:nearby.length?nearby:sameTeam;
+      if(passCandidates.length) ball.carrier=passCandidates[Math.floor(Math.random()*passCandidates.length)];
+    }
+    if(!ball.carrier||ball.carrier.redCard){
+      const fp=players.filter(p=>!p.redCard&&p.role!=='GK');
+      if(fp.length) ball.carrier=fp[Math.floor(Math.random()*fp.length)];
+    }
   }
-  if(!ball.carrier||ball.carrier.redCard){
-    const fp=players.filter(p=>!p.redCard&&p.role!=='GK');
-    if(fp.length) ball.carrier=fp[Math.floor(Math.random()*fp.length)];
-  }
-  // Ball movement with momentum
-  if(ball.carrier){
-    ball.tx=ball.carrier.x;ball.ty=ball.carrier.y;
-  }
+  // Ball follows carrier
+  if(ball.carrier){ball.tx=ball.carrier.x;ball.ty=ball.carrier.y;}
   const bdx=ball.tx-ball.x,bdy=ball.ty-ball.y,bdist=Math.sqrt(bdx*bdx+bdy*bdy);
-  if(bdist>2){
-    ball.vx+=(bdx/bdist)*4-ball.vx*0.1;
-    ball.vy+=(bdy/bdist)*4-ball.vy*0.1;
-    ball.x+=ball.vx*dt*60;ball.y+=ball.vy*dt*60;
-  }
+  if(bdist>2){ball.vx+=(bdx/bdist)*5-ball.vx*0.12;ball.vy+=(bdy/bdist)*5-ball.vy*0.12;ball.x+=ball.vx*dt*60;ball.y+=ball.vy*dt*60;}
+
   // Player movement
   for(const p of players){
     if(p.redCard) continue;
-    const baseX=FL+p.bx*(FR-FL),baseY=FT+p.by*(FB-FT);
-    const db=Math.sqrt((ball.x-p.x)**2+(ball.y-p.y)**2);
-    // Defenders are more conservative
-    const isDef=p.role.includes('CB')||p.role==='LB'||p.role==='RB'||p.role==='CDM';
-    const jitter=isDef?4:10;
-    const reactionRange=isDef?70:100;
-    const ballInfluence=p.role==='GK'?0.1:isDef?0.15:0.25;
+    const hm=HEATMAPS[p.role]||HEATMAPS['CM1'];
+    const hxMin=heatmapX(p,hm.x[0]),hxMax=heatmapX(p,hm.x[1]);
+    const hyMin=heatmapY(p,hm.y[0]),hyMax=heatmapY(p,hm.y[1]);
+    const hxMid=(hxMin+hxMax)/2,hyMid=(hyMin+hyMax)/2;
+    const hxRng=(hxMax-hxMin)/2,hyRng=(hyMax-hyMin)/2;
+    const db=Math.hypot(ball.x-p.x,ball.y-p.y);
+    const ad=attackingDir(p.team);
+    const isDef=p.role.includes('CB')||p.role==='LB'||p.role==='RB'||p.role.includes('CDM');
+
     if(p===ball.carrier){
-      p.tx=p.x+(Math.random()-0.5)*20;p.ty=p.y+(Math.random()-0.5)*20;
-    }else if(db<reactionRange){
-      p.tx=p.x+(ball.x-p.x)*ballInfluence+(baseX-p.x)*0.08+(Math.random()-0.5)*jitter;
-      p.ty=p.y+(ball.y-p.y)*ballInfluence+(baseY-p.y)*0.08+(Math.random()-0.5)*jitter;
+      // Carrier: drive toward opponent's goal, stay in heatmap
+      const pushX=p.x+ad*25+(Math.random()-0.5)*20;
+      const pushY=p.y+(Math.random()-0.5)*20;
+      p.tx=Math.max(hxMin-10,Math.min(hxMax+10,pushX));
+      p.ty=Math.max(hyMin-10,Math.min(hyMax+10,pushY));
+    }else if(db<80&&p.team!==ball.carrier?.team){
+      // Opponent nearby: press toward ball
+      p.tx=ball.x+(p.x-ball.x)*0.5+(Math.random()-0.5)*12;
+      p.ty=ball.y+(p.y-ball.y)*0.5+(Math.random()-0.5)*12;
+    }else if(db<140&&p.team===ball.carrier?.team){
+      // Teammate: support run, advance with attack
+      const supX=ball.x-ad*30+(p.x-ball.x)*0.3+(Math.random()-0.5)*18;
+      const supY=ball.y+(p.y-ball.y)*0.3+(Math.random()-0.5)*16;
+      p.tx=Math.max(hxMin-10,Math.min(hxMax+15,supX));
+      p.ty=Math.max(hyMin-10,Math.min(hyMax+10,supY));
     }else{
-      p.tx=baseX+(Math.random()-0.5)*jitter*2;p.ty=baseY+(Math.random()-0.5)*jitter*2;
+      // Far from ball: return to heatmap center with drift
+      const driftX=hxMid+(Math.sin(Date.now()/2000+p.bx*10)*hxRng*0.5)+(Math.random()-0.5)*hxRng*0.3;
+      const driftY=hyMid+(Math.cos(Date.now()/2500+p.by*10)*hyRng*0.5)+(Math.random()-0.5)*hyRng*0.3;
+      p.tx=driftX;p.ty=driftY;
     }
-    // Keep defenders in their half more strictly
-    if(isDef){
-      if(p.team==='home') p.tx=Math.min(FR-10,p.tx);
-      else p.tx=Math.max(FL+10,p.tx);
-    }
+    // Defenders stay deeper
+    if(isDef){p.tx=Math.max(hxMin-5,p.tx);if(ad===1) p.tx=Math.min(hxMid+40,p.tx);else p.tx=Math.max(hxMid-40,p.tx);}
+    // Final clamp
     p.tx=Math.max(FL+5,Math.min(FR-5,p.tx));p.ty=Math.max(FT+5,Math.min(FB-5,p.ty));
-    // Smooth velocity-based movement
-    const pdx=p.tx-p.x,pdy=p.ty-p.y,pdist=Math.sqrt(pdx*pdx+pdy*pdy);
-    const spd=p.role==='GK'?1.2:isDef?1.8:2.2;
-    p.vx+=(pdx/Math.max(1,pdist))*spd*0.3-p.vx*0.15;
-    p.vy+=(pdy/Math.max(1,pdist))*spd*0.3-p.vy*0.15;
+    // Velocity-based smooth movement
+    const pdx=p.tx-p.x,pdy=p.ty-p.y,pdist=Math.hypot(pdx,pdy);
+    const spd=p.role==='GK'?.8:isDef?1.5:2.2;
+    p.vx+=(pdx/Math.max(1,pdist))*spd*0.35-p.vx*0.18;
+    p.vy+=(pdy/Math.max(1,pdist))*spd*0.35-p.vy*0.18;
     p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;
   }
   // Ball carrier flag
@@ -610,7 +654,17 @@ function showAddedTimeUI(label){
   }
   addedOverlay.classList.add('active');state='addedTime';
 }
+function swapEnds(){
+  homeAttacksRight=!homeAttacksRight;
+  for(const p of players){
+    p.bx=1-p.bx;p.by=1-p.by;
+    p.x=FL+p.bx*(FR-FL);p.y=FT+p.by*(FB-FT);
+    p.tx=p.x;p.ty=p.y;p.vx=0;p.vy=0;
+  }
+  ball.x=FW/2;ball.y=FH/2;ball.tx=FW/2;ball.ty=FH/2;ball.vx=0;ball.vy=0;ball.carrier=null;
+}
 function doHalftime(){
+  swapEnds();
   state='halftime';gameTime=45;halftimePause=true;addedIndicator.style.display='none';
   updateScoreboard();tension=Math.max(15,tension-10);updateTensionDisplay();
   showFeedback('partial','⏸️ 上半场结束，中场休息...');
@@ -778,7 +832,7 @@ function resetState(){
   cardLogEntries=[];cardLog.classList.remove('active');cardLog.innerHTML='<span class="card-title">📋 出牌记录</span>';
   addedPhase='none';addedTarget=0;addedChosen=0;halfIncidents=0;halfVARs=0;halfGoals=0;
   addedDoneHalf1=false;addedDoneHalf2=false;halftimePause=false;
-  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;
+  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;
   addedIndicator.style.display='none';addedOverlay.classList.remove('active');
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
   feedbackToast.classList.remove('show');hideIncidentUI();
