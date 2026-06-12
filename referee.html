@@ -132,6 +132,12 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   #result-screen h2{font-size:22px}
   #result-screen .stats{font-size:12px}
 }
+@media(max-width:900px) and (orientation:landscape){
+  #game-wrapper{max-height:100vh;width:auto}
+  canvas{height:100vh;width:auto;max-width:100vw}
+  body{padding:0}
+  #game-wrapper{border-radius:0}
+}
 </style>
 </head>
 <body>
@@ -477,24 +483,47 @@ function teamLeading(t){return t==='home'?goalsHome>goalsAway:goalsAway>goalsHom
 function teamTrailing(t){return t==='home'?goalsHome<goalsAway:goalsAway<goalsHome}
 
 // ==================== INCIDENT GENERATION ====================
+function ballZone(){
+  const bx=ball.x,by=ball.y;
+  const inLeftBox=bx<FL+160&&by>FT+120&&by<FB-120;
+  const inRightBox=bx>FR-160&&by>FT+120&&by<FB-120;
+  if(inLeftBox||inRightBox) return'penaltyBox';
+  const nearLeftBox=bx>=FL+130&&bx<=FL+200;
+  const nearRightBox=bx>=FR-200&&bx<=FR-130;
+  if(nearLeftBox||nearRightBox) return'penaltyEdge';
+  if(by<FT+50||by>FB-50) return'sideline';
+  if(bx<FL+280) return'defensive';
+  if(bx>FR-280) return'attacking';
+  return'midfield';
+}
 function generateIncident(){
-  let pool=INCIDENTS.filter(i=>!i.cond||i.cond(i));
-  // Tension: high tension slightly biases toward harder fouls
+  const zone=ballZone();
+  // Filter by ball zone first: incidents must match where the ball actually is
+  let pool=INCIDENTS.filter(i=>i.loc===zone);
+  // If no incidents for this zone, expand to nearby zones
+  if(!pool.length){
+    const nearby={'penaltyBox':['penaltyBox','penaltyEdge','attacking','defensive'],'penaltyEdge':['penaltyEdge','penaltyBox','attacking','defensive','midfield'],'defensive':['defensive','penaltyEdge','midfield','sideline'],'attacking':['attacking','penaltyEdge','midfield','sideline'],'midfield':['midfield','defensive','attacking','sideline','penaltyEdge'],'sideline':['sideline','midfield','defensive','attacking']};
+    pool=INCIDENTS.filter(i=>nearby[zone]?.includes(i.loc));
+  }
+  if(!pool.length) pool=[...INCIDENTS];
+  // Condition filter
+  pool=pool.filter(i=>!i.cond||i.cond(i));
+  if(!pool.length) pool=[...INCIDENTS];
+  // Tension bias
   if(tension>65) pool=pool.filter(i=>Math.random()<0.7?i.diff!=='easy':true);
+  if(!pool.length) pool=INCIDENTS.filter(i=>!i.cond||i.cond(i));
   if(!pool.length) pool=[...INCIDENTS];
   const inc={...pool[Math.floor(Math.random()*pool.length)]};
   if(inc.desc.includes('{team}')) inc.desc=inc.desc.replace('{team}',inc.offenderTeam==='home'?'红队':'蓝队');
-  const l=inc.loc;
-  if(l==='penaltyBox'){inc.x=toX(0.1+Math.random()*0.2);inc.y=toY(0.25+Math.random()*0.5)}
-  else if(l==='penaltyEdge'){inc.x=toX(0.14+Math.random()*0.06);inc.y=toY(0.2+Math.random()*0.6)}
-  else if(l==='midfield'){inc.x=toX(0.3+Math.random()*0.4);inc.y=toY(0.1+Math.random()*0.8)}
-  else if(l==='defensive'){inc.x=toX(0.08+Math.random()*0.22);inc.y=toY(0.15+Math.random()*0.7)}
-  else if(l==='attacking'){inc.x=toX(0.68+Math.random()*0.22);inc.y=toY(0.15+Math.random()*0.7)}
-  else if(l==='sideline'){inc.x=toX(0.3+Math.random()*0.4);inc.y=Math.random()<0.5?toY(0.02):toY(0.98)}
-  else{inc.x=FW/2;inc.y=FH/2}
+  // Place incident at ball position
+  inc.x=ball.x+(Math.random()-0.5)*40;
+  inc.y=ball.y+(Math.random()-0.5)*40;
+  inc.x=Math.max(FL+5,Math.min(FR-5,inc.x));
+  inc.y=Math.max(FT+5,Math.min(FB-5,inc.y));
+  // Pick offender based on zone
   if(!inc.offenderRole){
-    const rmap={midfield:['CM1','CM2','LM','RM'],defensive:['CB1','CB2','LB','RB'],attacking:['ST1','ST2'],penaltyBox:['CB1','CB2','GK'],penaltyEdge:['CB1','CB2','LB','RB'],sideline:['LB','RB','LM','RM']};
-    inc.offenderRole=(rmap[l]||['CM1','CM2'])[Math.floor(Math.random()*(rmap[l]||['CM1']).length)];
+    const rmap={penaltyBox:['CB1','CB2','GK'],penaltyEdge:['CB1','CB2','LB','RB'],defensive:['CB1','CB2','LB','RB'],attacking:['ST1','ST2','LM','RM'],midfield:['CM1','CM2','LM','RM'],sideline:['LB','RB','LM','RM']};
+    inc.offenderRole=(rmap[zone]||['CM1','CM2'])[Math.floor(Math.random()*(rmap[zone]||['CM1']).length)];
   }
   if(!inc.offenderTeam) inc.offenderTeam=Math.random()<0.5?'home':'away';
   return inc;
