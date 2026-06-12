@@ -265,6 +265,7 @@ let lastGoalTeam=null,lastGoalGameTime=-99;
 let pendingPostGoal=null;
 let paused=false;
 let homeAttacksRight=true; // flips at halftime
+let decisionLog=[];
 
 // ==================== FORMATIONS ====================
 const FORMATIONS={
@@ -759,7 +760,9 @@ function handleDecision(action){
   adjustTension(action,correct,inc);
   updateScoreboard();
   showFeedback(resultType,resultText);
-  decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
+	  decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
+	  const L={playOn:'继续比赛',verbalWarning:'口头警告',freeKick:'任意球/点球',yellowCard:'黄牌',redCard:'红牌',goalStands:'进球有效',goalDisallowed:'进球无效'};
+	  decisionLog.push({d:inc.desc,c:L[action]||action,r:L[correct]||correct,t:resultType,m:Math.floor(gameTime)});
   state='feedback';feedbackTimer=FEEDBACK_MS;
 }
 function showFeedback(type,text){feedbackToast.className=type+' show';feedbackToast.textContent=text;setTimeout(()=>{feedbackToast.classList.remove('show');},FEEDBACK_MS-200);}
@@ -800,7 +803,7 @@ function gameLoop(ts){
   if(state==='incident'){
     decisionTimer-=dt;const pct=Math.max(0,(decisionTimer/DECISION_TIME)*100);timerBarFill.style.width=pct+'%';
     if(pct<30) timerBarFill.style.background='#e74c3c';else if(pct<60) timerBarFill.style.background='#f39c12';else timerBarFill.style.background='#27ae60';
-    if(decisionTimer<=0){totalDecisions++;halfIncidents++;refRating=Math.max(0,refRating-10);updateScoreboard();showFeedback('wrong','⏰ 时间到！');decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);state='feedback';feedbackTimer=FEEDBACK_MS;}
+    if(decisionTimer<=0){totalDecisions++;halfIncidents++;refRating=Math.max(0,refRating-10);updateScoreboard();showFeedback('wrong','⏰ 时间到！');decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);const L={playOn:'继续比赛',verbalWarning:'口头警告',freeKick:'任意球/点球',yellowCard:'黄牌',redCard:'红牌',goalStands:'进球有效',goalDisallowed:'进球无效'};decisionLog.push({d:currentIncident.desc,c:'超时未判',r:L[currentIncident.correct]||currentIncident.correct,t:'wrong',m:Math.floor(gameTime)});state='feedback';feedbackTimer=FEEDBACK_MS;}
   }
   if(state==='feedback'){feedbackTimer-=dt*1000;if(feedbackTimer<=0){hideIncidentUI();state='playing';incidentCooldown=INCIDENT_MIN+Math.random()*(INCIDENT_MAX-INCIDENT_MIN);
     // Check for post-goal event
@@ -819,7 +822,22 @@ function showResult(){
   let grade,emoji;
   if(acc>=90){grade='世界级裁判';emoji='🏆'}else if(acc>=80){grade='优秀裁判';emoji='🥇'}else if(acc>=70){grade='良好裁判';emoji='🥈'}else if(acc>=60){grade='合格裁判';emoji='🥉'}else if(acc>=45){grade='还需努力';emoji='📋'}else{grade='建议回炉重造';emoji='😅'}
   resultEmoji.textContent=emoji;
-  resultStats.innerHTML=`<strong style="font-size:20px;color:#ffd700">${grade}</strong><br>判罚准确率：<strong style="color:#ffd700;font-size:18px">${acc}%</strong><br>正确：${correctDecisions}/${totalDecisions} · 部分正确：${partialDecisions}<br>口头警告：${matchWarnings} · 🟡 黄牌：${matchYellows} · 🔴 红牌：${matchReds}<br>比分：红队 ${goalsHome} - ${goalsAway} 蓝队<br>紧张度：${Math.round(tension)}% · 时长：${Math.floor(HALF_DURATION_SEC*2/60)}分${Math.round(HALF_DURATION_SEC*2%60)}秒`;
+  let logHTML='';
+  if(decisionLog.length){
+    logHTML='<div style="margin-top:12px;text-align:left;max-height:200px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px;font-size:12px;line-height:1.6">';
+    logHTML+='<strong style="color:#ffd700;font-size:13px">📋 判罚回顾</strong><br>';
+    const colors={correct:'#27ae60',partial:'#f39c12',wrong:'#e74c3c'};
+    const icons={correct:'✅',partial:'⚠️',wrong:'❌'};
+    for(let i=0;i<decisionLog.length;i++){
+      const e=decisionLog[i];
+      logHTML+=`<div style="margin:4px 0;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:4px;border-left:3px solid ${colors[e.t]||'#888'}">`;
+      logHTML+=`<span style="color:#888">${e.m}'</span> ${icons[e.t]||''} ${e.d}<br>`;
+      logHTML+=`<span style="color:#aaa">你的选择：</span><span style="color:${colors[e.t]}">${e.c}</span>`;
+      logHTML+=` <span style="color:#888">| 正确：</span><span style="color:#27ae60">${e.r}</span></div>`;
+    }
+    logHTML+='</div>';
+  }
+  resultStats.innerHTML=`<strong style="font-size:20px;color:#ffd700">${grade}</strong><br>判罚准确率：<strong style="color:#ffd700;font-size:18px">${acc}%</strong><br>正确：${correctDecisions}/${totalDecisions} · 部分正确：${partialDecisions}<br>口头警告：${matchWarnings} · 🟡 黄牌：${matchYellows} · 🔴 红牌：${matchReds}<br>比分：红队 ${goalsHome} - ${goalsAway} 蓝队<br>紧张度：${Math.round(tension)}% · 时长：${Math.floor(HALF_DURATION_SEC*2/60)}分${Math.round(HALF_DURATION_SEC*2%60)}秒`+logHTML;
 }
 
 // ==================== CONTROL ====================
@@ -832,7 +850,7 @@ function resetState(){
   cardLogEntries=[];cardLog.classList.remove('active');cardLog.innerHTML='<span class="card-title">📋 出牌记录</span>';
   addedPhase='none';addedTarget=0;addedChosen=0;halfIncidents=0;halfVARs=0;halfGoals=0;
   addedDoneHalf1=false;addedDoneHalf2=false;halftimePause=false;
-  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;
+  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];
   addedIndicator.style.display='none';addedOverlay.classList.remove('active');
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
   feedbackToast.classList.remove('show');hideIncidentUI();
