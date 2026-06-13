@@ -705,7 +705,7 @@ function doFulltime(){
 }
 
 // ==================== UI ====================
-let selectedRestart=null;
+let selectedRestart=null,selectedSanction=null;
 function showIncidentUI(){
   const inc=currentIncident;
   const locL={penaltyBox:'禁区内',penaltyEdge:'禁区边缘',midfield:'中场',defensive:'防守区域',attacking:'进攻区域',sideline:'边线附近'};
@@ -716,7 +716,7 @@ function showIncidentUI(){
   }
   incidentDesc.innerHTML=`⚠️ <strong>事件：</strong>${inc.desc}${offHTML} <span class="tag">📍 ${locL[inc.loc]||''}</span>`;
   varInfo.classList.remove('show');varInfo.textContent='';decisionButtons.innerHTML='';
-  selectedRestart=null;
+  selectedRestart=null;selectedSanction=null;
   const isGoal=inc.type==='goal'||inc.pg;
   if(isGoal){
     [{l:'⚽ 进球有效',c:'btn-goal-stand',a:'goalStands'},{l:'❌ 进球无效',c:'btn-goal-disallow',a:'goalDisallowed'},{l:'📺 VAR',c:'btn-var',a:'var'}].forEach(b=>{
@@ -724,12 +724,12 @@ function showIncidentUI(){
     });
   }else{
     const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
-    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 直接任意球',c:'btn-foul',a:'directFK'},{l:'🚫 间接任意球',c:'btn-foul',a:'indirectFK'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'}];
+    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 任意球',c:'btn-foul',a:'freeKick'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'}];
     if(inc.pen) restarts.push({l:'📍 点球',c:'btn-foul',a:'penalty'});
     restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
     decisionButtons.appendChild(r1);
     const r2=document.createElement('div');r2.id='sanction-row';r2.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
-    [{l:'🗣️ 口头警告',c:'btn-warn',a:'verbalWarning'},{l:'🟡 黄牌',c:'btn-yellow',a:'yellowCard'},{l:'🔴 红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectSanctionAction(b.a));r2.appendChild(el);});
+    [{l:'⊘ 不给牌',c:'btn-playon',a:'none'},{l:'🗣️ 口头警告',c:'btn-warn',a:'verbalWarning'},{l:'🟡 黄牌',c:'btn-yellow',a:'yellowCard'},{l:'🔴 红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectSanctionAction(b.a));r2.appendChild(el);});
     decisionButtons.appendChild(r2);
     const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
     const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
@@ -742,10 +742,14 @@ function selectRestartAction(a){
   selectedRestart=a;
   document.querySelectorAll('#restart-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});
   event.target.style.outline='2px solid #ffd700';event.target.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
-  document.querySelectorAll('#sanction-row button').forEach(b=>b.style.opacity='1');
+  document.querySelectorAll('#sanction-row button').forEach(b=>{b.style.opacity='1';b.style.outline='';b.style.boxShadow='';});
+  // Auto-highlight 不给牌
+  const nb=document.querySelectorAll('#sanction-row button')[0];
+  if(nb){nb.style.outline='2px solid #ffd700';nb.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';selectedSanction='none';}
 }
 function selectSanctionAction(a){
   if(!selectedRestart) return;
+  selectedSanction=a;
   document.querySelectorAll('#sanction-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});
   event.target.style.outline='2px solid #ffd700';event.target.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
   handleDecision({restart:selectedRestart,sanction:a});
@@ -756,10 +760,10 @@ function getCorrectParts(inc){
   const c=inc.correct;
   if(c==='playOn') return{r:'playOn',s:'none'};
   if(c==='droppedBall') return{r:'droppedBall',s:'none'};
-  if(c==='verbalWarning') return{r:inc.ii?'indirectFK':'directFK',s:'verbalWarning'};
-  if(c==='freeKick') return{r:inc.ii?'indirectFK':'directFK',s:'none'};
-  if(c==='yellowCard') return{r:inc.pen?'penalty':'directFK',s:'yellowCard'};
-  if(c==='redCard') return{r:inc.pen?'penalty':'directFK',s:'redCard'};
+  if(c==='verbalWarning') return{r:'freeKick',s:'verbalWarning'};
+  if(c==='freeKick') return{r:'freeKick',s:'none'};
+  if(c==='yellowCard') return{r:inc.pen?'penalty':'freeKick',s:'yellowCard'};
+  if(c==='redCard') return{r:inc.pen?'penalty':'freeKick',s:'redCard'};
   return{r:'playOn',s:'none'};
 }
 function handleDecision(action){
@@ -778,7 +782,7 @@ function handleDecision(action){
     else if(rMatch&&!sMatch){resultType='partial';refRating=Math.max(0,refRating-3);partialDecisions++;resultText='恢复方式正确，但处罚力度不对。⚠️';}
     totalDecisions++;halfIncidents++;
     if(inc.offenderTeam){if(inc.offenderTeam==='home') homeFouls++;else awayFouls++;}
-    const lbl={playOn:'继续比赛',directFK:'直接任意球',indirectFK:'间接任意球',droppedBall:'坠球',penalty:'点球',none:'无牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
+    const lbl={playOn:'继续比赛',freeKick:'任意球',droppedBall:'坠球',penalty:'点球',none:'不给牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
     decisionLog.push({d:inc.desc,c:lbl[action.restart]+(action.sanction!=='none'?'+'+lbl[action.sanction]:''),r:lbl[cp.r]+(cp.s!=='none'?'+'+lbl[cp.s]:''),t:resultType,m:Math.floor(gameTime)});
     const s=action.sanction;
     if(s==='verbalWarning') matchWarnings++;
