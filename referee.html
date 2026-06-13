@@ -478,6 +478,10 @@ const INCIDENTS=[
   {id:'pen-slight',desc:'蓝队前锋禁区内切与红队防守轻微接触后倒地，极微妙。',loc:'penaltyBox',correct:'playOn',diff:'hard',pen:true,ot:'home',or:'CB1',vr:'VAR：轻微接触不构成犯规→正常对抗。'},
   {id:'off-tight',ii:true,desc:'蓝队边路传中，接应球员与最后防守球员几乎平线，边裁举旗。',loc:'attacking',correct:'playOn',diff:'hard',pen:false,ot:'away',or:'ST2',vr:'VAR划线：实际平线→不越位。'},
   {id:'fair-charge',desc:'红队球员合理冲撞将蓝队球员撞开抢到球，蓝队要求犯规。',loc:'midfield',correct:'playOn',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR：合理冲撞，肩部接触→不犯规。'},
+  {id:'ball-hit-ref',desc:'传球击中裁判后球权发生转换，蓝队获得球权。双方停下来等哨。',loc:'midfield',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：球触裁判导致球权转换→坠球恢复，最后触球方得球。'},
+  {id:'second-ball',desc:'场外飞进第二个球进入场地，干扰了正在进行的进攻。',loc:'midfield',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：外部干扰物进入场地→坠球恢复比赛。'},
+  {id:'injury-stoppage',desc:'蓝队球员在拼抢中受伤倒地，无犯规但需要队医进场。',loc:'midfield',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：非犯规伤停→坠球恢复，由最后触球方获得。'},
+  {id:'whistle-mistake',desc:'裁判误吹哨声中止了比赛，红队当时正在进攻。',loc:'midfield',correct:'droppedBall',diff:'medium',pen:false,ot:null,or:null,vr:'规则：裁判误吹哨→坠球恢复，最后触球方得球。'},
   // == verbalWarning ==
   {id:'minor-shove',desc:'红队球员边线轻微推蓝队球员，动作不大但对方失平衡。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'RM',vr:'VAR：轻微接触→口头警告即可。'},
   {id:'delay',desc:'蓝队球员在红队准备发任意球时故意站球前阻挡拖延。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR：延误恢复比赛→口头警告。'},
@@ -639,7 +643,7 @@ function updateTensionDisplay(){
 function adjustTension(action,correct,inc){
   const bias=Math.abs(homeFouls-awayFouls);
   if(bias>2) tension=Math.min(100,tension+3);
-  if((correct==='yellowCard'||correct==='redCard')&&(action==='verbalWarning'||action==='playOn'||action==='freeKick')){
+  if((correct==='yellowCard'||correct==='redCard')&&(action==='verbalWarning'||action==='playOn'||action==='none'||action==='freeKick')){
     tension=Math.min(100,tension+7);lenientCalls++;
   }
   if(action===correct&&action!=='playOn'&&action!=='verbalWarning') tension=Math.max(10,tension-2);
@@ -720,7 +724,7 @@ function showIncidentUI(){
     });
   }else{
     const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
-    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 直接任意球',c:'btn-foul',a:'directFK'},{l:'🚫 间接任意球',c:'btn-foul',a:'indirectFK'}];
+    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 直接任意球',c:'btn-foul',a:'directFK'},{l:'🚫 间接任意球',c:'btn-foul',a:'indirectFK'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'}];
     if(inc.pen) restarts.push({l:'📍 点球',c:'btn-foul',a:'penalty'});
     restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
     decisionButtons.appendChild(r1);
@@ -751,6 +755,7 @@ function hideIncidentUI(){incidentOverlay.classList.remove('active');varInfo.cla
 function getCorrectParts(inc){
   const c=inc.correct;
   if(c==='playOn') return{r:'playOn',s:'none'};
+  if(c==='droppedBall') return{r:'droppedBall',s:'none'};
   if(c==='verbalWarning') return{r:inc.ii?'indirectFK':'directFK',s:'verbalWarning'};
   if(c==='freeKick') return{r:inc.ii?'indirectFK':'directFK',s:'none'};
   if(c==='yellowCard') return{r:inc.pen?'penalty':'directFK',s:'yellowCard'};
@@ -773,7 +778,7 @@ function handleDecision(action){
     else if(rMatch&&!sMatch){resultType='partial';refRating=Math.max(0,refRating-3);partialDecisions++;resultText='恢复方式正确，但处罚力度不对。⚠️';}
     totalDecisions++;halfIncidents++;
     if(inc.offenderTeam){if(inc.offenderTeam==='home') homeFouls++;else awayFouls++;}
-    const lbl={playOn:'继续比赛',directFK:'直接任意球',indirectFK:'间接任意球',penalty:'点球',none:'无牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
+    const lbl={playOn:'继续比赛',directFK:'直接任意球',indirectFK:'间接任意球',droppedBall:'坠球',penalty:'点球',none:'无牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
     decisionLog.push({d:inc.desc,c:lbl[action.restart]+(action.sanction!=='none'?'+'+lbl[action.sanction]:''),r:lbl[cp.r]+(cp.s!=='none'?'+'+lbl[cp.s]:''),t:resultType,m:Math.floor(gameTime)});
     const s=action.sanction;
     if(s==='verbalWarning') matchWarnings++;
