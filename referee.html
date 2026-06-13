@@ -492,7 +492,7 @@ const INCIDENTS=[
   {id:'first-foul',desc:'红队中场首次犯规，轻微拉拽球衣，动作不大。',loc:'midfield',correct:'verbalWarning',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：轻微拉拽，初犯→口头警告合适。'},
   {id:'challenge-50',desc:'双方50/50争球，红队球员用较大力量冲撞，蓝队倒地。',loc:'midfield',correct:'verbalWarning',diff:'hard',pen:false,ot:'home',or:'CM1',vr:'VAR：激烈对抗但尚不构成犯规→最多口头警告。'},
   {id:'jostle',desc:'蓝队球员在角球准备时轻微推搡对方后卫，争夺位置。',loc:'penaltyBox',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR：轻微推搡但未影响比赛→口头警告。'},
-  {id:'dissent-mild',desc:'红队球员对判罚表示不满，向裁判抱怨了几句但未过分。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR：轻微表达不满未达到黄牌程度→口头提醒。'},
+  {id:'dissent-mild',rst:'freeKick',desc:'红队球员对判罚表示不满，向裁判抱怨了几句但未过分。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR：轻微表达不满未达到黄牌程度→口头提醒。'},
   // == freeKick (no card) ==
   {id:'push-back',desc:'红队球员争顶时双手推蓝队球员背部致其摔倒。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR：双手推搡→犯规→任意球，未到出牌程度。'},
   {id:'obv-offside',ii:true,desc:'蓝队前锋传球瞬间明显越位，超出防守球员两个身位。',loc:'attacking',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR确认：传球瞬间明显越位→任意球。'},
@@ -530,7 +530,7 @@ const INCIDENTS=[
   {id:'shirt-pull-minor',desc:'红队球员轻微拉了一下蓝队球员球衣然后马上松手，蓝队球员没有倒地。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'LM',vr:'VAR：极轻微的拉拽，很快松手未影响比赛→口头警告即可。'},
   {id:'throw-in-delay',desc:'蓝队球员准备掷界外球时反复擦球、换位置，拖延了约10秒。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'LB',vr:'VAR：轻度拖延但未到黄牌程度→口头提醒。'},
   {id:'encroach-freekick',desc:'红队人墙在任意球发出前悄悄向前挪了半步，未到黄牌程度。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'CB2',vr:'VAR：轻微提前移动→口头警告后退即可。'},
-  {id:'dissent-mild2',desc:'蓝队球员对一次界外球判罚摇头表示不满，但未出言不逊。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'RM',vr:'VAR：轻微不满表达未过激→口头提醒即可。'},
+  {id:'dissent-mild2',rst:'freeKick',desc:'蓝队球员对一次界外球判罚摇头表示不满，但未出言不逊。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'RM',vr:'VAR：轻微不满表达未过激→口头提醒即可。'},
   {id:'gk-hold-long',desc:'蓝队门将抱住球后迟迟不发出，大概5秒左右，未到6秒极限。',loc:'defensive',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'GK',vr:'VAR：接近但未超6秒→口头提醒加快发球。'},
   // ===== ADDED: more freeKick =====
   {id:'trip-break',desc:'红队球员伸脚绊倒正在快速推进的蓝队边锋，战术犯规阻止反击。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'LM',vr:'VAR确认：绊人犯规阻止反击→任意球，未到黄牌程度。'},
@@ -543,11 +543,11 @@ const INCIDENTS=[
   {id:'spa-tactical',desc:'蓝队球员在中场战术性拉倒红队持球球员，阻止了一次有威胁的反击。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM1',vr:'VAR：战术犯规阻止有希望的进攻（SPA）→黄牌。'},
   {id:'reckless-slide2',desc:'红队边后卫滑铲动作过大，双脚虽未离地但铲球力量很大。',loc:'sideline',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'LB',vr:'VAR：滑铲力量过大属鲁莽犯规→黄牌。'},
   {id:'arm-face',desc:'蓝队球员转身时扬起的手臂打到了红队球员脸部，动作鲁莽。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'ST2',vr:'VAR：手臂打到面部属鲁莽动作→黄牌。'},
-  {id:'dissent-strong',desc:'红队球员对裁判判罚激烈抗议，挥舞手臂并大声喊叫。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR确认：以言语或行动表示异议→黄牌。'},
+  {id:'dissent-strong',rst:'freeKick',desc:'红队球员对裁判判罚激烈抗议，挥舞手臂并大声喊叫。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR确认：以言语或行动表示异议→黄牌。'},
   {id:'late-tackle',desc:'蓝队球员在球已传出后仍然出脚铲倒红队球员，明显晚了。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：球已传出后仍然铲球→鲁莽犯规→黄牌。'},
   // ===== ADDED: more redCard =====
-  {id:'violent-off-ball',desc:'红队球员在无球状态下故意用肘部击打蓝队球员腹部，边裁已示意。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST2',vr:'VAR确认：无球状态下暴力行为→红牌。'},
-  {id:'headbutt',desc:'双方球员争吵时，蓝队球员用头顶撞红队球员的面部。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：头顶撞对方→暴力行为→红牌。'},
+  {id:'violent-off-ball',rst:'freeKick',desc:'红队球员在无球状态下故意用肘部击打蓝队球员腹部，边裁已示意。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST2',vr:'VAR确认：无球状态下暴力行为→红牌。'},
+  {id:'headbutt',rst:'freeKick',desc:'双方球员争吵时，蓝队球员用头顶撞红队球员的面部。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：头顶撞对方→暴力行为→红牌。'},
   // ===== ADDED: more boundary =====
   {id:'corner-near-post',desc:'蓝队射门被红队门将指尖碰到后擦着门柱出底线。红队球员认为是球门球。',loc:'penaltyBox',correct:'cornerAway',diff:'medium',pen:false,ot:null,or:null,boundary:'goalLine',vr:'VAR：门将指尖触球后出底线→蓝队角球。'},
   {id:'throw-in-deep',desc:'球在红队后场边线附近出界，蓝队前锋逼抢时似乎最后碰到了球。',loc:'sideline',correct:'throwAway',diff:'medium',pen:false,ot:null,or:null,boundary:'touchLine',vr:'VAR：最后触球的是红队球员→蓝队界外球。'},
@@ -568,22 +568,117 @@ const INCIDENTS=[
 
   // ===== NON-SPORTING BEHAVIOR =====
   {id:'dive-midfield',desc:'蓝队中场在被轻微触碰后夸张倒地翻滚三圈，试图让对方吃牌。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：轻微触碰后夸张倒地→明显假摔→黄牌。'},
-  {id:'gesture-crowd',desc:'红队球员进球后对着蓝队球迷看台做出挑衅性手势。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：对观众做出挑衅手势→非体育行为→黄牌。',cond:i=>{const tg=lastGoalTeam==='home'&&gameTime-lastGoalGameTime<2;return tg;}},
-  {id:'ball-kick-away',desc:'蓝队被判犯规后，蓝队球员愤怒地将球踢向看台。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR确认：将球踢走延误比赛恢复→非体育行为→黄牌。'},
+  {id:'gesture-crowd',rst:'kickoff',desc:'红队球员进球后对着蓝队球迷看台做出挑衅性手势。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：对观众做出挑衅手势→非体育行为→黄牌。',cond:i=>{const tg=lastGoalTeam==='home'&&gameTime-lastGoalGameTime<2;return tg;}},
+  {id:'ball-kick-away',rst:'freeKick',desc:'蓝队被判犯规后，蓝队球员愤怒地将球踢向看台。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR确认：将球踢走延误比赛恢复→非体育行为→黄牌。'},
   {id:'feign-injury',desc:'红队门将在一次简单扑救后倒地不起装作受伤，试图拖延时间。',loc:'defensive',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：没有明显撞击却夸张倒地→可能假伤拖延→黄牌警告。'},
   {id:'leave-field',desc:'蓝队球员被换下时故意从远离替补席的一侧缓慢走向场外。',loc:'sideline',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'RM',vr:'规则：被换下球员应从最近边界离场→故意拖延→黄牌。'},
   {id:'encroach-wall',desc:'红队人墙在任意球发出时明显向前冲了数步，球打在人墙上。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CB2',vr:'VAR：人墙不遵守规定距离且提前冲出→黄牌。重发任意球。'},
-  {id:'offensive-language',desc:'蓝队球员在被犯规后对裁判使用了侮辱性语言，声音很大全场都听到了。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：对裁判使用侮辱性/辱骂性语言→红牌。'},
-  {id:'spit-opponent',desc:'双方球员争吵中，红队球员向蓝队球员吐口水，口水落到了对方球衣上。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：向对方吐口水→暴力行为→红牌。'},
+  {id:'offensive-language',rst:'freeKick',desc:'蓝队球员在被犯规后对裁判使用了侮辱性语言，声音很大全场都听到了。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：对裁判使用侮辱性/辱骂性语言→红牌。'},
+  {id:'spit-opponent',rst:'freeKick',desc:'双方球员争吵中，红队球员向蓝队球员吐口水，口水落到了对方球衣上。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：向对方吐口水→暴力行为→红牌。'},
   {id:'bite',desc:'角球争抢中，蓝队球员咬了一下红队球员的手臂，牙印清晰可见。',loc:'penaltyBox',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CB1',vr:'VAR确凿：咬人→严重暴力行为→红牌+点球/坠球恢复。'},
-  {id:'mass-confront',desc:'一次犯规后双方多名球员推搡对峙，场面几近失控。主裁需要迅速控制局面。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：挑事球员需被警告→对双方主要涉事球员各出示黄牌。'},
-  {id:'throw-ball-face',desc:'红队球员在死球状态下用力将球砸向蓝队球员的面部。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR确认：故意用球砸对方→暴力行为→红牌。'},
-  {id:'excess-celebration',desc:'蓝队进球后全队冲向角旗滑跪庆祝，持续了很长时间才回到半场。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR：过分延长庆祝时间→非体育行为→黄牌。',cond:i=>{const tg=lastGoalTeam==='away'&&gameTime-lastGoalGameTime<2;return tg;}},
+  {id:'mass-confront',rst:'freeKick',desc:'一次犯规后双方多名球员推搡对峙，场面几近失控。主裁需要迅速控制局面。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：挑事球员需被警告→对双方主要涉事球员各出示黄牌。'},
+  {id:'throw-ball-face',rst:'freeKick',desc:'红队球员在死球状态下用力将球砸向蓝队球员的面部。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR确认：故意用球砸对方→暴力行为→红牌。'},
+  {id:'excess-celebration',rst:'kickoff',desc:'蓝队进球后全队冲向角旗滑跪庆祝，持续了很长时间才回到半场。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR：过分延长庆祝时间→非体育行为→黄牌。',cond:i=>{const tg=lastGoalTeam==='away'&&gameTime-lastGoalGameTime<2;return tg;}},
   {id:'fake-throw',desc:'红队准备掷界外球时假装将球掷给队友，实际却将球留给了另一个队友。',loc:'sideline',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'LB',vr:'VAR：假装掷球→非体育行为→对方间接任意球+口头警告。'},
   {id:'deliberate-handball-goal',desc:'蓝队后卫在门线上用身体挡住射门，球疑似先碰到了他的手臂再弹到胸口。',loc:'penaltyBox',correct:'yellowCard',diff:'hard',pen:true,ot:'away',or:'CB2',vr:'VAR：手臂在自然位置与身体之间，球碰手臂后弹到胸口→非故意手球→不判罚。等等！回放显示手臂有微小的向球移动。判罚：点球+黄牌。'},
-  {id:'referee-surround',desc:'裁判刚吹罚了一个争议任意球，红队三名球员围住裁判激烈抗议。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：围堵裁判表达异议→至少对主要抗议球员出示黄牌。'},
-  {id:'violent-kick',desc:'红队球员在被蓝队球员铲倒后，倒地时故意用鞋钉踢向对方小腿。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST2',vr:'VAR确认：倒地后故意踢人报复→暴力行为→红牌。'},
+  {id:'referee-surround',rst:'freeKick',desc:'裁判刚吹罚了一个争议任意球，红队三名球员围住裁判激烈抗议。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：围堵裁判表达异议→至少对主要抗议球员出示黄牌。'},
+  {id:'violent-kick',rst:'freeKick',desc:'红队球员在被蓝队球员铲倒后，倒地时故意用鞋钉踢向对方小腿。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST2',vr:'VAR确认：倒地后故意踢人报复→暴力行为→红牌。'},
   {id:'mask-pull',desc:'蓝队球员在争抢时用力扯了一下红队球员的头发。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR确认：拉扯对方头发→非体育行为→黄牌。'},
+
+
+  // ===== BONUS ROUND: 80+ more incidents =====
+  // playOn
+  {id:'clean-tackle',desc:'蓝队中场一记干净利落的铲球把球断下，红队球员自己绊到摔倒。',loc:'midfield',correct:'playOn',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR：铲球完全碰到球→干净抢断→不犯规。'},
+  {id:'accidental-hand',desc:'红队球员射门时球击中队友手臂，完全意外且手臂紧贴身体。',loc:'attacking',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'ST2',vr:'VAR：球从极近距离击中紧贴身体的手臂→意外→不犯规。'},
+  {id:'corner-jostle',desc:'角球准备时双方球员在禁区内互相推搡抢位置，力度相当。',loc:'penaltyBox',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'CB1',vr:'VAR：双方互相推搡力度相当→正常争抢→不判罚。'},
+  {id:'gk-drop',desc:'红队门将接球后脱手，蓝队前锋冲上来补射，门将二次扑救成功。',loc:'penaltyBox',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：门将脱手后球处于活球状态→前锋补射合法→不是犯规。'},
+  {id:'rebound-offside',desc:'红队射门被门将扑出，处于越位位置的蓝队球员没有参与补射。',loc:'attacking',correct:'playOn',diff:'medium',pen:false,ot:'away',or:'ST2',vr:'VAR：越位球员未参与补射也未干扰→比赛继续。'},
+  // freeKick
+  {id:'ankle-tap',desc:'蓝队球员在对方突破时轻轻踢到了红队球员的脚后跟使其失去平衡。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR：踢到对方脚后跟→犯规→任意球。'},
+  {id:'charge-back',desc:'红队球员从背后冲撞正在护球的蓝队球员致其倒地。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR：背后冲撞→犯规→任意球。'},
+  {id:'pull-jersey',desc:'蓝队球员在回追时拉住红队球员球衣下摆阻止其加速。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'LM',vr:'VAR：持续拉球衣→犯规→任意球。'},
+  {id:'handball-field',desc:'红队球员在中场故意用手臂停下一个长传球获得球权。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：故意用手臂控球→手球犯规→任意球。'},
+  {id:'block-run',desc:'蓝队球员没有触球意图，只是跑动路线阻挡了红队无球球员的跑动。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：无触球意图的阻挡→间接任意球。',ii:true},
+  {id:'gk-hand-outside',desc:'蓝队门将在禁区外接队友回传球时用手抱住了球。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'GK',vr:'VAR：门将在禁区外用手触球→直接任意球。'},
+  {id:'slide-from-front',desc:'红队球员从正面滑铲，虽碰到球但双脚离地铲向对方。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：正面滑铲但双脚离地→危险动作→任意球。'},
+  {id:'pull-arm',desc:'蓝队球员在防守角球时拉住红队球员的手臂阻止其跑向球的落点。',loc:'penaltyBox',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'CB2',vr:'VAR：拉住手臂阻止跑动→犯规→任意球。'},
+  {id:'scissor-tackle',desc:'红队球员剪刀脚铲球，双腿夹倒了蓝队球员，但先碰到了球。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：剪刀脚动作对对手构成危险→犯规→任意球。'},
+  // verbalWarning
+  {id:'minor-push',desc:'红队球员在界外球准备时轻轻推了对方一下，对方没有倒地。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'RB',vr:'VAR：极轻微推搡→口头警告即可。'},
+  {id:'quick-free-kick-block',desc:'蓝队准备快发任意球，红队球员故意站球前不让发。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR：故意阻挡快速发球→口头警告。'},
+  {id:'gk-time',desc:'红队门将开门球时稍微慢了一点，但还在合理范围内。',loc:'defensive',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'GK',vr:'VAR：接近拖延但未明显超时→口头提醒加快。'},
+  {id:'encroach-throw',desc:'蓝队掷界外球时，红队球员站在不到2米的位置干扰。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'LB',vr:'VAR：未保持2米距离→口头警告。'},
+  // yellowCard
+  {id:'handball-yc',desc:'蓝队球员在防守时故意用手臂将球拍下，阻止了一次有威胁的传球。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：故意手球阻止有希望的进攻→黄牌。'},
+  {id:'pull-back-spa',desc:'红队最后一名中场球员拉住即将突破的蓝队边锋球衣，使用战术犯规。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：战术犯规阻止有希望的进攻（SPA）→黄牌。'},
+  {id:'slide-careless',desc:'蓝队边后卫在湿滑场地上滑铲，时机判断失误铲倒了红队边锋。',loc:'sideline',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'RB',vr:'VAR：滑铲时机明显错误→鲁莽犯规→黄牌。'},
+  {id:'arm-swing',desc:'红队球员转身护球时大幅度挥臂打到身后蓝队球员面部。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'ST2',vr:'VAR：大幅度挥臂→鲁莽动作→黄牌。'},
+  {id:'trip-breakaway',desc:'蓝队球员战术性绊倒正在组织反击的红队中场，刻意犯规。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM1',vr:'VAR：战术犯规阻止反击→黄牌。'},
+  {id:'late-challenge',desc:'红队球员在球已传出1秒后仍然出脚踢到蓝队球员脚踝。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：球已离脚后的侵犯→鲁莽犯规→黄牌。'},
+  {id:'stomp-foot',desc:'蓝队球员在争抢中不小心踩到红队球员脚面，力度中等未造成伤害。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：踩到对方脚面→鲁莽犯规→黄牌。'},
+  // redCard
+  {id:'twofoot-lunge',desc:'红队球员从中场高速冲刺后双脚离地飞铲，鞋钉直接朝向蓝队球员膝盖。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR确认：高速双脚飞铲→严重犯规→红牌。'},
+  {id:'elbow-face',desc:'蓝队球员争顶时故意抬起肘部击中红队球员颧骨，对方倒地流血。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'ST2',vr:'VAR确认：故意肘击面部→暴力行为→红牌。'},
+  {id:'kick-ground',desc:'红队球员在被犯规倒地后，故意用脚踢蓝队球员支撑腿的膝盖。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：倒地后故意踢对方膝盖→暴力行为→红牌。'},
+  {id:'stamp-leg',desc:'蓝队球员在解围后顺势用鞋钉踩踏红队球员大腿，动作隐蔽。',loc:'midfield',correct:'redCard',diff:'hard',pen:false,ot:'away',or:'CM2',vr:'VAR：隐蔽踩踏动作→暴力行为→红牌。'},
+  {id:'dogso-push',desc:'红队球员单刀面对门将时被蓝队最后一名后卫从身后用力推倒。',loc:'defensive',correct:'redCard',diff:'medium',pen:false,ot:'away',or:'CB1',vr:'VAR确认：推倒单刀球员，明显得分机会被破坏（DOGSO）→红牌。'},
+  // droppedBall
+  {id:'injury-head',desc:'红队球员和蓝队球员头部相撞双双倒地，裁判立即中止比赛。',loc:'defensive',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：头部受伤裁判立即停止比赛→坠球恢复。'},
+  {id:'light-failure',desc:'球场部分灯光突然熄灭，比赛被迫暂停等待修复。',loc:'midfield',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：外部原因导致比赛暂停→坠球恢复。'},
+  {id:'substitute-interfere',desc:'场边热身的替补球员不小心碰到界内的球改变了方向。',loc:'sideline',correct:'droppedBall',diff:'medium',pen:false,ot:null,or:null,vr:'规则：替补队员干扰比赛→坠球恢复。'},
+  // boundary
+  {id:'corner-deflect',desc:'蓝队射门打在红队后卫身上折射出底线，边裁判角球但红队说是门球。',loc:'penaltyBox',correct:'cornerAway',diff:'medium',pen:false,ot:null,or:null,boundary:'goalLine',vr:'VAR：碰红队后卫出底线→蓝队角球。'},
+  {id:'throw-midfield',desc:'球在中线附近出边线，双方球员都示意是己方球。',loc:'sideline',correct:'throwHome',diff:'medium',pen:false,ot:null,or:null,boundary:'touchLine',vr:'VAR：蓝队球员最后触球→红队界外球。'},
+  {id:'goal-kick-cross',desc:'红队传中球直接飞出底线，没有碰到任何人，蓝队门将示意球门球。',loc:'attacking',correct:'goalKickHome',diff:'easy',pen:false,ot:null,or:null,boundary:'goalLine',vr:'VAR确认：红队最后触球出底线→蓝队球门球。'},
+  // goalCheck
+  {id:'gl-volley',desc:'蓝队球员禁区外凌空抽射世界波直挂死角！',loc:'attacking',correct:'goalStands',diff:'easy',pen:false,pg:'away',vr:'VAR确认：射门动作干净→进球有效。'},
+  {id:'gl-tapin',desc:'红队边路传中，后点无人盯防的球员轻松推射空门得分！',loc:'attacking',correct:'goalStands',diff:'easy',pen:false,pg:'home',vr:'VAR确认：传跑时机完美→进球有效。'},
+  {id:'gl-free-kick-goal',desc:'红队禁区前任意球直接破门！皮球绕过人墙飞入死角。',loc:'attacking',correct:'goalStands',diff:'easy',pen:false,pg:'home',vr:'VAR确认：直接任意球进球→有效。'},
+  {id:'gl-deflection',desc:'蓝队远射打在红队后卫身上变线入网！门将毫无反应。',loc:'attacking',correct:'goalStands',diff:'medium',pen:false,pg:'away',vr:'VAR确认：折射进球过程中无犯规→进球有效。'},
+  {id:'gl-offside-rebound',desc:'红队射门击中门柱弹回，处于越位位置的队友补射进球。',loc:'attacking',correct:'goalDisallowed',diff:'medium',pen:false,pg:'home',vr:'VAR：队友射门时补射球员处于越位位置→越位，进球无效。',ot:'home',or:'ST2'},
+  {id:'gl-foul-buildup2',desc:'蓝队在中场抢断后快速反击进球，但抢断动作有犯规嫌疑。',loc:'midfield',correct:'goalDisallowed',diff:'hard',pen:false,pg:'away',vr:'VAR：抢断时从身后铲球犯规在先→进球无效，红队任意球。',ot:'away',or:'CM1'},
+  {id:'gl-handball-attacker',desc:'红队球员在禁区内用上臂将球控下后射门得分。',loc:'penaltyBox',correct:'goalDisallowed',diff:'medium',pen:false,pg:'home',vr:'VAR：进球前进攻球员手球→进球无效+黄牌。',ot:'home',or:'ST1'},
+  {id:'gl-goal-keeper-foul',desc:'蓝队角球开出，进攻球员在争顶时压住门将肩膀借力头球破门。',loc:'penaltyBox',correct:'goalDisallowed',diff:'medium',pen:false,pg:'away',vr:'VAR：进攻球员对门将犯规在先→进球无效。',ot:'away',or:'ST1'},
+  // more freeKick (indirect)
+  {id:'offside-buildup2',desc:'蓝队进攻中接球球员明显越位，边裁延迟举旗等球出界后才示意。',loc:'attacking',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'ST2',vr:'VAR确认：明显越位→间接任意球。',ii:true},
+  {id:'gk-second-touch',desc:'红队门将开门球时队友回传，门将用手接球后再次放下又用手拿起。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：门将二次手触球→禁区内间接任意球。',ii:true},
+  {id:'danger-play-header',desc:'蓝队球员在对方球员头顶附近尝试倒钩，对方吓得缩头躲开。',loc:'attacking',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'ST1',vr:'VAR：在对方头部附近倒钩→危险动作→间接任意球。',ii:true},
+  {id:'prevent-gk-release',desc:'红队前锋在蓝队门将准备开球时站在前面阻挡其发球路线。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'ST1',vr:'VAR：阻止门将发球→间接任意球。',ii:true},
+  // more verbalWarning with rst
+  {id:'socks-down',desc:'蓝队球员袜子在比赛中滑落到脚踝以下，裁判提醒后仍未整理。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'规则：装备不符合规定→口头警告要求整理。'},
+  {id:'request-var',desc:'红队球员在每次判罚后都做出VAR手势要求回看，已连续三次。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR：反复要求VAR回看→口头警告。'},
+  // more yellowCard with rst
+  {id:'remove-shirt-partial',desc:'红队球员进球后掀起球衣蒙住头部庆祝，但未完全脱下。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'home',or:'ST1',rst:'kickoff',vr:'VAR：用球衣蒙头→等同于脱衣庆祝→黄牌。',cond:i=>{const tg=lastGoalTeam==='home'&&gameTime-lastGoalGameTime<2;return tg;}},
+  {id:'throw-bottle',desc:'蓝队球迷向场内投掷水瓶抗议判罚，蓝队队长要求球迷冷静。',loc:'sideline',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'CM2',rst:'freeKick',vr:'规则：虽非球员所为，但裁判可对拖延的球员出示黄牌。'},
+  {id:'persistent-foul2',desc:'红队防守中场全场已犯规5次，这次又轻微拉人，属于持续犯规。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：多次犯规累计→持续犯规→黄牌。'},
+  // more redCard with rst
+  {id:'serious-foul-play',desc:'蓝队球员在争抢中过度用力踢向红队球员膝盖以上部位。',loc:'midfield',correct:'redCard',diff:'medium',pen:false,ot:'away',or:'CM2',rst:'freeKick',vr:'VAR确认：过度用力危及对方安全→严重犯规→红牌。'},
+  {id:'racist-gesture',desc:'红队球员对蓝队外援做出种族歧视性手势，第四官员已向主裁报告。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST2',rst:'freeKick',vr:'规则：种族歧视行为→红牌。赛后需写入裁判报告。'},
+  // more boundary
+  {id:'goal-kick-near',desc:'蓝队前锋逼抢时，红队后卫将球踢出底线，但前锋说球先碰到了门将。',loc:'defensive',correct:'goalKickHome',diff:'medium',pen:false,ot:null,or:null,boundary:'goalLine',vr:'VAR：后卫最后触球→蓝队应得角球？不对，后卫是在门将碰球后才解围的→红队球门球。'},
+  {id:'throw-in-deep2',desc:'球在蓝队前场边线附近出界，红队后卫和蓝队前锋都说是对方碰出的。',loc:'sideline',correct:'throwHome',diff:'medium',pen:false,ot:null,or:null,boundary:'touchLine',vr:'VAR：碰蓝队前锋小腿出界→红队界外球。'},
+  {id:'corner-far-post',desc:'红队头球解围出底线，但蓝队球员认为红队球员根本没碰到球。',loc:'penaltyBox',correct:'cornerAway',diff:'medium',pen:false,ot:null,or:null,boundary:'goalLine',vr:'VAR：球擦到红队球员头发→角球正确。'},
+  // more droppedBall
+  {id:'referee-injury',desc:'裁判在跑动中拉伤腿部肌肉，无法继续执法，比赛暂停。',loc:'midfield',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：裁判受伤无法执法→第四官员替补→坠球恢复。'},
+  {id:'pitch-invader',desc:'一名观众冲进球场拥抱球员，保安正在追逐。',loc:'midfield',correct:'droppedBall',diff:'easy',pen:false,ot:null,or:null,vr:'规则：观众闯入场地→比赛暂停→坠球恢复。'},
+  // more goalCheck
+  {id:'gl-goal-counter',desc:'红队防守反击，三打一轻松推射空门得分！',loc:'attacking',correct:'goalStands',diff:'easy',pen:false,pg:'home',vr:'VAR确认：反击过程无犯规→进球有效。'},
+  {id:'gl-goal-scramble',desc:'蓝队角球开出，禁区内连续三次射门被挡后终于捅射入网！',loc:'penaltyBox',correct:'goalStands',diff:'medium',pen:false,pg:'away',vr:'VAR确认：混战中无手球或犯规→进球有效。'},
+  {id:'gl-goal-offside-var',desc:'红队进球后VAR自动检查是否越位，划线显示情况极其接近。',loc:'attacking',correct:'goalStands',diff:'hard',pen:false,pg:'home',vr:'VAR划线：进攻球员肩膀与防守球员膝盖平线→不越位，进球有效。'},
+  {id:'gl-goal-foul-gk2',desc:'红队任意球传中，门将出击被进攻球员撞了一下，球飞入空门。',loc:'penaltyBox',correct:'goalDisallowed',diff:'medium',pen:false,pg:'home',vr:'VAR：进攻球员在门将控制球前冲撞→犯规，进球无效。',ot:'home',or:'ST2'},
+  // more freeKick
+  {id:'push-off-ball',desc:'红队球员在无球状态下推了蓝队球员一下，两人都在中场等球。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR：无球状态下推人→犯规→任意球。'},
+  {id:'block-keeper',desc:'蓝队球员在红队门将准备大脚开球时故意挡住其路线。',loc:'defensive',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR：阻挡门将发球→间接任意球。',ii:true},
+  // more playOn
+  {id:'fair-shoulder2',desc:'红队和蓝队球员同时起跳争头球，两人在空中发生了正常的身体碰撞。',loc:'midfield',correct:'playOn',diff:'easy',pen:false,ot:'home',or:'CB1',vr:'VAR：同时争球，正常身体接触→不犯规。'},
+  {id:'offside-non-active',desc:'蓝队虽然有一名球员处于越位位置，但他站在原地未参与进攻。',loc:'attacking',correct:'playOn',diff:'medium',pen:false,ot:'away',or:'ST2',vr:'VAR：越位位置但未参与进攻→比赛继续。'},
+  // more yellowCard
+  {id:'elbow-jump',desc:'红队球员在跳起争顶时肘部向外张开碰到了蓝队球员头部。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'ST1',rst:'freeKick',vr:'VAR：跳起时肘部外张触到头部→鲁莽犯规→黄牌。'},
+  // verbal warning
+  {id:'delay-goal-kick',desc:'落后一方的蓝队门将在开门球时故意放慢节奏，拖延约8秒。',loc:'defensive',correct:'verbalWarning',diff:'medium',pen:false,ot:'away',or:'GK',vr:'VAR：轻度拖延未到黄牌程度→口头警告。'},
+  // condition-based additions
+  {id:'trail-foul2',desc:'{team}在落后情况下，中场球员急躁地从背后推搡对方。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM1',rst:'freeKick',vr:'VAR：落后方急躁犯规→黄牌。',cond:i=>teamTrailing(i.offenderTeam)},
+  {id:'lead-timewaste2',desc:'{team}在领先时，边后卫在掷界外球时明显拖延时间。',loc:'sideline',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'LB',rst:'freeKick',vr:'VAR：领先方拖延时间→黄牌。',cond:i=>teamLeading(i.offenderTeam)},
 
 ];
 
@@ -804,7 +899,7 @@ function showIncidentUI(){
     decisionButtons.appendChild(r3);
   }else{
     const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
-    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 任意球',c:'btn-foul',a:'freeKick'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'}];
+    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 任意球',c:'btn-foul',a:'freeKick'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'},{l:'🏁 开球',c:'btn-goal-stand',a:'kickoff'}];
     if(inc.pen) restarts.push({l:'📍 点球',c:'btn-foul',a:'penalty'});
     restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
     decisionButtons.appendChild(r1);
@@ -837,13 +932,13 @@ function selectSanctionAction(a){
 function hideIncidentUI(){incidentOverlay.classList.remove('active');varInfo.classList.remove('show');}
 
 function getCorrectParts(inc){
-  const c=inc.correct;
+  const c=inc.correct,rst=inc.rst;
   if(c==='playOn') return{r:'playOn',s:'none'};
   if(c==='droppedBall') return{r:'droppedBall',s:'none'};
-  if(c==='verbalWarning') return{r:'freeKick',s:'verbalWarning'};
-  if(c==='freeKick') return{r:'freeKick',s:'none'};
-  if(c==='yellowCard') return{r:inc.pen?'penalty':'freeKick',s:'yellowCard'};
-  if(c==='redCard') return{r:inc.pen?'penalty':'freeKick',s:'redCard'};
+  if(c==='verbalWarning') return{r:rst||'freeKick',s:'verbalWarning'};
+  if(c==='freeKick') return{r:rst||'freeKick',s:'none'};
+  if(c==='yellowCard') return{r:rst||(inc.pen?'penalty':'freeKick'),s:'yellowCard'};
+  if(c==='redCard') return{r:rst||(inc.pen?'penalty':'freeKick'),s:'redCard'};
   if(c==='cornerHome') return{r:'cornerHome',s:'none'};
   if(c==='cornerAway') return{r:'cornerAway',s:'none'};
   if(c==='goalKickHome') return{r:'goalKickHome',s:'none'};
@@ -868,7 +963,7 @@ function handleDecision(action){
     else if(rMatch&&!sMatch){resultType='partial';refRating=Math.max(0,refRating-3);partialDecisions++;resultText='恢复方式正确，但处罚力度不对。⚠️';}
     totalDecisions++;halfIncidents++;
     if(inc.offenderTeam){if(inc.offenderTeam==='home') homeFouls++;else awayFouls++;}
-    const lbl={playOn:'继续比赛',freeKick:'任意球',droppedBall:'坠球',penalty:'点球',none:'不给牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌',cornerHome:'🔴角球',cornerAway:'🔵角球',goalKickHome:'🔴球门球',goalKickAway:'🔵球门球',throwHome:'🔴界外球',throwAway:'🔵界外球'};
+    const lbl={playOn:'继续比赛',freeKick:'任意球',droppedBall:'坠球',penalty:'点球',kickoff:'开球',none:'不给牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌',cornerHome:'🔴角球',cornerAway:'🔵角球',goalKickHome:'🔴球门球',goalKickAway:'🔵球门球',throwHome:'🔴界外球',throwAway:'🔵界外球'};
     decisionLog.push({d:inc.desc,c:lbl[action.restart]+(action.sanction!=='none'?'+'+lbl[action.sanction]:''),r:lbl[cp.r]+(cp.s!=='none'?'+'+lbl[cp.s]:''),t:resultType,m:Math.floor(gameTime)});
     const s=action.sanction;
     if(s==='verbalWarning') matchWarnings++;
