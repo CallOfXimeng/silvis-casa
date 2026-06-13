@@ -565,6 +565,26 @@ const INCIDENTS=[
   {id:'gl-goal-off-post',desc:'红队远射击中立柱弹回，跟上的球员补射进球。但补射时是否越位？',loc:'attacking',correct:'goalStands',diff:'medium',pen:false,pg:'home',vr:'VAR：射门瞬间补射球员在球后方→不越位，进球有效。'},
 
 
+
+  // ===== NON-SPORTING BEHAVIOR =====
+  {id:'dive-midfield',desc:'蓝队中场在被轻微触碰后夸张倒地翻滚三圈，试图让对方吃牌。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：轻微触碰后夸张倒地→明显假摔→黄牌。'},
+  {id:'gesture-crowd',desc:'红队球员进球后对着蓝队球迷看台做出挑衅性手势。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：对观众做出挑衅手势→非体育行为→黄牌。',cond:i=>{const tg=lastGoalTeam==='home'&&gameTime-lastGoalGameTime<2;return tg;}},
+  {id:'ball-kick-away',desc:'蓝队被判犯规后，蓝队球员愤怒地将球踢向看台。',loc:'midfield',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR确认：将球踢走延误比赛恢复→非体育行为→黄牌。'},
+  {id:'feign-injury',desc:'红队门将在一次简单扑救后倒地不起装作受伤，试图拖延时间。',loc:'defensive',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：没有明显撞击却夸张倒地→可能假伤拖延→黄牌警告。'},
+  {id:'leave-field',desc:'蓝队球员被换下时故意从远离替补席的一侧缓慢走向场外。',loc:'sideline',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'RM',vr:'规则：被换下球员应从最近边界离场→故意拖延→黄牌。'},
+  {id:'encroach-wall',desc:'红队人墙在任意球发出时明显向前冲了数步，球打在人墙上。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CB2',vr:'VAR：人墙不遵守规定距离且提前冲出→黄牌。重发任意球。'},
+  {id:'offensive-language',desc:'蓝队球员在被犯规后对裁判使用了侮辱性语言，声音很大全场都听到了。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR确认：对裁判使用侮辱性/辱骂性语言→红牌。'},
+  {id:'spit-opponent',desc:'双方球员争吵中，红队球员向蓝队球员吐口水，口水落到了对方球衣上。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR确认：向对方吐口水→暴力行为→红牌。'},
+  {id:'bite',desc:'角球争抢中，蓝队球员咬了一下红队球员的手臂，牙印清晰可见。',loc:'penaltyBox',correct:'redCard',diff:'easy',pen:false,ot:'away',or:'CB1',vr:'VAR确凿：咬人→严重暴力行为→红牌+点球/坠球恢复。'},
+  {id:'mass-confront',desc:'一次犯规后双方多名球员推搡对峙，场面几近失控。主裁需要迅速控制局面。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：挑事球员需被警告→对双方主要涉事球员各出示黄牌。'},
+  {id:'throw-ball-face',desc:'红队球员在死球状态下用力将球砸向蓝队球员的面部。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR确认：故意用球砸对方→暴力行为→红牌。'},
+  {id:'excess-celebration',desc:'蓝队进球后全队冲向角旗滑跪庆祝，持续了很长时间才回到半场。',loc:'attacking',correct:'yellowCard',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR：过分延长庆祝时间→非体育行为→黄牌。',cond:i=>{const tg=lastGoalTeam==='away'&&gameTime-lastGoalGameTime<2;return tg;}},
+  {id:'fake-throw',desc:'红队准备掷界外球时假装将球掷给队友，实际却将球留给了另一个队友。',loc:'sideline',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'LB',vr:'VAR：假装掷球→非体育行为→对方间接任意球+口头警告。'},
+  {id:'deliberate-handball-goal',desc:'蓝队后卫在门线上用身体挡住射门，球疑似先碰到了他的手臂再弹到胸口。',loc:'penaltyBox',correct:'yellowCard',diff:'hard',pen:true,ot:'away',or:'CB2',vr:'VAR：手臂在自然位置与身体之间，球碰手臂后弹到胸口→非故意手球→不判罚。等等！回放显示手臂有微小的向球移动。判罚：点球+黄牌。'},
+  {id:'referee-surround',desc:'裁判刚吹罚了一个争议任意球，红队三名球员围住裁判激烈抗议。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：围堵裁判表达异议→至少对主要抗议球员出示黄牌。'},
+  {id:'violent-kick',desc:'红队球员在被蓝队球员铲倒后，倒地时故意用鞋钉踢向对方小腿。',loc:'midfield',correct:'redCard',diff:'easy',pen:false,ot:'home',or:'ST2',vr:'VAR确认：倒地后故意踢人报复→暴力行为→红牌。'},
+  {id:'mask-pull',desc:'蓝队球员在争抢时用力扯了一下红队球员的头发。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR确认：拉扯对方头发→非体育行为→黄牌。'},
+
 ];
 
 // Post-goal incidents (only after a goal is scored)
