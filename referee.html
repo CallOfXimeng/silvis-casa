@@ -30,11 +30,17 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 .rating-display span{color:#fff;font-size:11px;margin-right:4px}
 #pause-btn{pointer-events:auto;background:rgba(0,0,0,0.7);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:5px 10px;font-size:16px;cursor:pointer;backdrop-filter:blur(8px);transition:transform 0.1s;line-height:1}
 #pause-btn:hover{transform:scale(1.1);border-color:#ffd700}
-#pause-overlay{position:absolute;inset:0;z-index:45;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+#pause-overlay{position:absolute;inset:0;z-index:45;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
 #pause-overlay.active{display:flex}
-#pause-overlay span{color:#fff;font-size:36px;font-weight:800;text-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none}
-#pause-restart{pointer-events:auto;padding:10px 28px;border-radius:8px;border:none;font-size:16px;font-weight:700;cursor:pointer;background:#e74c3c;color:#fff;transition:transform 0.1s}
-#pause-restart:hover{transform:scale(1.05)}
+#pause-overlay .pause-title{color:#fff;font-size:32px;font-weight:800;text-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none}
+#pause-stats{display:flex;gap:20px;color:#ccc;font-size:13px;text-align:center;pointer-events:none}
+#pause-stats .stat-val{font-size:22px;font-weight:700;color:#ffd700}
+#pause-stats .stat-label{font-size:10px;color:#888}
+#pause-btns{display:flex;gap:12px}
+#pause-btns button{pointer-events:auto;padding:10px 24px;border-radius:8px;border:none;font-size:15px;font-weight:700;cursor:pointer;color:#fff;transition:transform 0.1s}
+#pause-btns button:hover{transform:scale(1.05)}
+#pause-continue{background:#27ae60}
+#pause-restart{background:#e74c3c}
 #card-log{background:rgba(0,0,0,0.75);border-radius:8px;padding:6px 10px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);display:none;flex-direction:column;gap:3px;max-height:130px;overflow-y:auto;font-size:11px;min-width:100px}
 #card-log.active{display:flex}
 #card-log .card-title{color:#888;font-size:10px;margin-bottom:2px}
@@ -170,7 +176,7 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   </div>
 </div>
 <div id="feedback-toast"></div>
-<div id="pause-overlay"><span>⏸️ 已暂停</span><button id="pause-restart" onclick="restartGame()">🔄 重新开始</button></div>
+<div id="pause-overlay"><span class="pause-title">⏸️ 已暂停</span><div id="pause-stats"><div><div class="stat-val" id="stat-poss">--</div><div class="stat-label">控球率</div></div><div><div class="stat-val" id="stat-goals">--</div><div class="stat-label">进球</div></div><div><div class="stat-val" id="stat-fouls">--</div><div class="stat-label">犯规</div></div></div><div id="pause-btns"><button id="pause-continue" onclick="togglePause()">▶ 继续</button><button id="pause-restart" onclick="restartGame()">🔄 重新开始</button></div></div>
 <div id="rotate-overlay"><span class="icon">📱</span><p>请旋转屏幕<br>横屏体验更佳</p></div>
 <div id="added-time-overlay"><h3 id="added-title">⏱️ 伤停补时</h3><div class="info" id="added-info"></div><div id="added-buttons"></div></div>
 <div id="incident-overlay">
@@ -238,6 +244,9 @@ const addedIndicator=document.getElementById('added-indicator');
 const addedMinutes=document.getElementById('added-minutes');
 const pauseBtn=document.getElementById('pause-btn');
 const pauseOverlay=document.getElementById('pause-overlay');
+const statPoss=document.getElementById("stat-poss");
+const statGoals=document.getElementById("stat-goals");
+const statFouls=document.getElementById("stat-fouls");
 const fullscreenBtn=document.getElementById('fullscreen-btn');
 const rotateOverlay=document.getElementById('rotate-overlay');
 
@@ -268,6 +277,7 @@ let pendingPostGoal=null;
 let paused=false;
 let homeAttacksRight=true; // flips at halftime
 let decisionLog=[];
+let homePossTime=0,awayPossTime=0,totalPossFrames=0;
 
 // ==================== FORMATIONS ====================
 const FORMATIONS={
@@ -447,6 +457,7 @@ function updateBallAndPlayers(dt){
     p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;
   }
   // Ball carrier flag
+  if(ball.carrier&&!ball.carrier.redCard){totalPossFrames++;if(ball.carrier.team==="home") homePossTime++;else awayPossTime++;}
   players.forEach(p=>p.hasBall=false);
   if(ball.carrier&&!ball.carrier.redCard) ball.carrier.hasBall=true;
   // Goal opportunity → incident
@@ -858,7 +869,7 @@ function resetState(){
   cardLogEntries=[];cardLog.classList.remove('active');cardLog.innerHTML='<span class="card-title">📋 出牌记录</span>';
   addedPhase='none';addedTarget=0;addedChosen=0;halfIncidents=0;halfVARs=0;halfGoals=0;
   addedDoneHalf1=false;addedDoneHalf2=false;halftimePause=false;
-  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];
+  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];homePossTime=0;awayPossTime=0;totalPossFrames=0;
   addedIndicator.style.display='none';addedOverlay.classList.remove('active');
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
   feedbackToast.classList.remove('show');hideIncidentUI();
@@ -875,8 +886,16 @@ function togglePause(){
   if(state==='title'||state==='fulltime'||state==='halftime') return;
   paused=!paused;
   pauseBtn.textContent=paused?'▶️':'⏸️';
-  if(paused) pauseOverlay.classList.add('active');
-  else pauseOverlay.classList.remove('active');
+  if(paused){
+    pauseOverlay.classList.add('active');
+    // Populate stats
+    if(totalPossFrames>0){
+      const hp=Math.round(homePossTime/totalPossFrames*100),ap=100-hp;
+      statPoss.textContent=(hp>=ap?'🔴':'🔵')+' '+hp+'% - '+ap+'%';
+    }else statPoss.textContent='--';
+    statGoals.textContent='🔴 '+goalsHome+' - '+goalsAway+' 🔵';
+    statFouls.textContent='🔴 '+homeFouls+' - '+awayFouls+' 🔵';
+  }else pauseOverlay.classList.remove('active');
 }
 // Detect mobile for rotate hint
 const isMobile=/Mobi|Android|iPhone/i.test(navigator.userAgent);
