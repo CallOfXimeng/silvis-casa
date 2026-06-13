@@ -807,6 +807,7 @@ function handleDecision(action){
   showFeedback(resultType,resultText);
   decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
   state='feedback';feedbackTimer=FEEDBACK_MS;
+}
 
 function showFeedback(type,text){feedbackToast.className=type+' show';feedbackToast.textContent=text;setTimeout(()=>{feedbackToast.classList.remove('show');},FEEDBACK_MS-200);}
 function updateScoreboard(){
