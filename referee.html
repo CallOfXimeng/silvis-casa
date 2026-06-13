@@ -30,9 +30,11 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 .rating-display span{color:#fff;font-size:11px;margin-right:4px}
 #pause-btn{pointer-events:auto;background:rgba(0,0,0,0.7);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:5px 10px;font-size:16px;cursor:pointer;backdrop-filter:blur(8px);transition:transform 0.1s;line-height:1}
 #pause-btn:hover{transform:scale(1.1);border-color:#ffd700}
-#pause-overlay{position:absolute;inset:0;z-index:45;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;pointer-events:none}
+#pause-overlay{position:absolute;inset:0;z-index:45;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px}
 #pause-overlay.active{display:flex}
-#pause-overlay span{color:#fff;font-size:36px;font-weight:800;text-shadow:0 4px 12px rgba(0,0,0,0.5)}
+#pause-overlay span{color:#fff;font-size:36px;font-weight:800;text-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none}
+#pause-restart{pointer-events:auto;padding:10px 28px;border-radius:8px;border:none;font-size:16px;font-weight:700;cursor:pointer;background:#e74c3c;color:#fff;transition:transform 0.1s}
+#pause-restart:hover{transform:scale(1.05)}
 #card-log{background:rgba(0,0,0,0.75);border-radius:8px;padding:6px 10px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);display:none;flex-direction:column;gap:3px;max-height:130px;overflow-y:auto;font-size:11px;min-width:100px}
 #card-log.active{display:flex}
 #card-log .card-title{color:#888;font-size:10px;margin-bottom:2px}
@@ -168,7 +170,7 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   </div>
 </div>
 <div id="feedback-toast"></div>
-<div id="pause-overlay"><span>⏸️ 已暂停</span></div>
+<div id="pause-overlay"><span>⏸️ 已暂停</span><button id="pause-restart" onclick="restartGame()">🔄 重新开始</button></div>
 <div id="rotate-overlay"><span class="icon">📱</span><p>请旋转屏幕<br>横屏体验更佳</p></div>
 <div id="added-time-overlay"><h3 id="added-title">⏱️ 伤停补时</h3><div class="info" id="added-info"></div><div id="added-buttons"></div></div>
 <div id="incident-overlay">
@@ -421,6 +423,12 @@ function updateBallAndPlayers(dt){
       const supY=ball.y+(p.y-ball.y)*0.3+(Math.random()-0.5)*16;
       p.tx=Math.max(hxMin-10,Math.min(hxMax+15,supX));
       p.ty=Math.max(hyMin-10,Math.min(hyMax+10,supY));
+    }else if(isDef&&ball.carrier&&ball.carrier.team!==p.team&&db<280){
+      // Defender tracking opponent's attack: retreat and shift laterally to cover
+      const retreatX=p.x-ad*18+(ball.x-p.x)*0.08+(Math.random()-0.5)*8;
+      const shiftY=ball.y+(p.y-ball.y)*0.25+(Math.random()-0.5)*12;
+      p.tx=Math.max(hxMin-8,Math.min(hxMax+8,retreatX));
+      p.ty=Math.max(hyMin-8,Math.min(hyMax+8,shiftY));
     }else{
       // Far from ball: return to heatmap center with drift
       const driftX=hxMid+(Math.sin(Date.now()/2000+p.bx*10)*hxRng*0.5)+(Math.random()-0.5)*hxRng*0.3;
