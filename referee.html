@@ -536,7 +536,7 @@ const INCIDENTS=[
   {id:'trip-break',desc:'红队球员伸脚绊倒正在快速推进的蓝队边锋，战术犯规阻止反击。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'LM',vr:'VAR确认：绊人犯规阻止反击→任意球，未到黄牌程度。'},
   {id:'push-aerial',desc:'蓝队球员在争顶头球时轻微推了红队球员，动作不大但足以影响平衡。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR：轻微推搡影响争顶→任意球。'},
   {id:'jump-at',desc:'红队球员跳向对方进行争抢，但跳的方向是对手而非球。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：跳向对手而非球→犯规，任意球。'},
-  {id:'kick-attempt',desc:'蓝队球员试图踢球但踢到了红队球员的小腿，非故意但造成了接触。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR：踢到对方球员→犯规→任意球，非故意不给牌。'},
+  {id:'kick-attempt',desc:'蓝队球员试图踢球但踢到了红队球员的小腿，非故意但造成了接触。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR：踢到对方球员→犯规→任意球，非故意无处罚。'},
   {id:'strike-attempt',desc:'红队球员挥臂争球时打到了蓝队球员脸部，动作是争球的一部分。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR：手臂碰到面部但属争球动作→任意球，口头警告。'},
   {id:'holding-mid2',desc:'蓝队球员在红队球员转身时用手臂勾住对方腰部阻止突破。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR确认：持续勾住对方→任意球。'},
   // ===== ADDED: more yellowCard =====
@@ -589,7 +589,7 @@ const INCIDENTS=[
   // ===== BONUS ROUND: 80+ more incidents =====
   // playOn
   {id:'clean-tackle',desc:'蓝队中场一记干净利落的铲球把球断下，红队球员自己绊到摔倒。',loc:'midfield',correct:'playOn',diff:'easy',pen:false,ot:'away',or:'CM2',vr:'VAR：铲球完全碰到球→干净抢断→不犯规。'},
-  {id:'accidental-hand',desc:'红队球员射门时球击中队友手臂，完全意外且手臂紧贴身体。',loc:'attacking',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'ST2',vr:'VAR：球从极近距离击中紧贴身体的手臂→意外→不犯规。'},
+  {id:'accidental-hand',desc:'红队球员在拼抢中与对方互相拉拽球衣，两人同时倒地，动作相当。',loc:'midfield',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：双方同时拉拽→互相犯规→比赛继续。'},
   {id:'corner-jostle',desc:'角球准备时双方球员在禁区内互相推搡抢位置，力度相当。',loc:'penaltyBox',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'CB1',vr:'VAR：双方互相推搡力度相当→正常争抢→不判罚。'},
   {id:'gk-drop',desc:'红队门将接球后脱手，蓝队前锋冲上来补射，门将二次扑救成功。',loc:'penaltyBox',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：门将脱手后球处于活球状态→前锋补射合法→不是犯规。'},
   {id:'rebound-offside',desc:'红队射门被门将扑出，处于越位位置的蓝队球员没有参与补射。',loc:'attacking',correct:'playOn',diff:'medium',pen:false,ot:'away',or:'ST2',vr:'VAR：越位球员未参与补射也未干扰→比赛继续。'},
@@ -597,7 +597,7 @@ const INCIDENTS=[
   {id:'ankle-tap',desc:'蓝队球员在对方突破时轻轻踢到了红队球员的脚后跟使其失去平衡。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'CM1',vr:'VAR：踢到对方脚后跟→犯规→任意球。'},
   {id:'charge-back',desc:'红队球员从背后冲撞正在护球的蓝队球员致其倒地。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'ST1',vr:'VAR：背后冲撞→犯规→任意球。'},
   {id:'pull-jersey',desc:'蓝队球员在回追时拉住红队球员球衣下摆阻止其加速。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'LM',vr:'VAR：持续拉球衣→犯规→任意球。'},
-  {id:'handball-field',desc:'红队球员在中场故意用手臂停下一个长传球获得球权。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：故意用手臂控球→手球犯规→任意球。'},
+  {id:'handball-field',desc:'红队球员在中场从身后踢到了蓝队球员的小腿，对方应声倒地。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR确认：从身后踢到对方小腿→犯规→任意球。'},
   {id:'block-run',desc:'蓝队球员没有触球意图，只是跑动路线阻挡了红队无球球员的跑动。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：无触球意图的阻挡→间接任意球。',ii:true},
   {id:'gk-hand-outside',desc:'蓝队门将在禁区外接队友回传球时用手抱住了球。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'GK',vr:'VAR：门将在禁区外用手触球→直接任意球。'},
   {id:'slide-from-front',desc:'红队球员从正面滑铲，虽碰到球但双脚离地铲向对方。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：正面滑铲但双脚离地→危险动作→任意球。'},
@@ -609,7 +609,7 @@ const INCIDENTS=[
   {id:'gk-time',desc:'红队门将开门球时稍微慢了一点，但还在合理范围内。',loc:'defensive',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'GK',vr:'VAR：接近拖延但未明显超时→口头提醒加快。'},
   {id:'encroach-throw',desc:'蓝队掷界外球时，红队球员站在不到2米的位置干扰。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'LB',vr:'VAR：未保持2米距离→口头警告。'},
   // yellowCard
-  {id:'handball-yc',desc:'蓝队球员在防守时故意用手臂将球拍下，阻止了一次有威胁的传球。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：故意手球阻止有希望的进攻→黄牌。'},
+  {id:'handball-yc',desc:'蓝队球员在中场战术性勾倒正在持球推进的红队球员，阻止了一次有威胁的反击。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM2',vr:'VAR：战术犯规阻止有希望的进攻（SPA）→黄牌。'},
   {id:'pull-back-spa',desc:'红队最后一名中场球员拉住即将突破的蓝队边锋球衣，使用战术犯规。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：战术犯规阻止有希望的进攻（SPA）→黄牌。'},
   {id:'slide-careless',desc:'蓝队边后卫在湿滑场地上滑铲，时机判断失误铲倒了红队边锋。',loc:'sideline',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'RB',vr:'VAR：滑铲时机明显错误→鲁莽犯规→黄牌。'},
   {id:'arm-swing',desc:'红队球员转身护球时大幅度挥臂打到身后蓝队球员面部。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'ST2',vr:'VAR：大幅度挥臂→鲁莽动作→黄牌。'},
@@ -920,12 +920,12 @@ function showIncidentUI(){
     // Home sanction
     const hrow=document.createElement('div');hrow.style.cssText='display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:3px;align-items:center';
     const hl=document.createElement('span');hl.textContent='🔴红队:';hl.style.cssText='color:#e74c3c;font-size:12px;font-weight:700;margin-right:4px';hrow.appendChild(hl);
-    [{l:'不给牌',c:'btn-playon',a:'none'},{l:'口头',c:'btn-warn',a:'verbalWarning'},{l:'黄牌',c:'btn-yellow',a:'yellowCard'},{l:'红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectConflictSanction('h',b.a,el));hrow.appendChild(el);});
+    [{l:'无处罚',c:'btn-playon',a:'none'},{l:'口头',c:'btn-warn',a:'verbalWarning'},{l:'黄牌',c:'btn-yellow',a:'yellowCard'},{l:'红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectConflictSanction('h',b.a,el));hrow.appendChild(el);});
     hrow.id='conf-h-row';decisionButtons.appendChild(hrow);
     // Away sanction
     const arow=document.createElement('div');arow.style.cssText='display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:3px;align-items:center';
     const al=document.createElement('span');al.textContent='🔵蓝队:';al.style.cssText='color:#3498db;font-size:12px;font-weight:700;margin-right:4px';arow.appendChild(al);
-    [{l:'不给牌',c:'btn-playon',a:'none'},{l:'口头',c:'btn-warn',a:'verbalWarning'},{l:'黄牌',c:'btn-yellow',a:'yellowCard'},{l:'红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectConflictSanction('a',b.a,el));arow.appendChild(el);});
+    [{l:'无处罚',c:'btn-playon',a:'none'},{l:'口头',c:'btn-warn',a:'verbalWarning'},{l:'黄牌',c:'btn-yellow',a:'yellowCard'},{l:'红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectConflictSanction('a',b.a,el));arow.appendChild(el);});
     arow.id='conf-a-row';decisionButtons.appendChild(arow);
     // VAR
     const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
@@ -939,7 +939,7 @@ function showIncidentUI(){
     restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
     decisionButtons.appendChild(r1);
     const r2=document.createElement('div');r2.id='sanction-row';r2.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
-    [{l:'⊘ 不给牌',c:'btn-playon',a:'none'},{l:'🗣️ 口头警告',c:'btn-warn',a:'verbalWarning'},{l:'🟡 黄牌',c:'btn-yellow',a:'yellowCard'},{l:'🔴 红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectSanctionAction(b.a));r2.appendChild(el);});
+    [{l:'⊘ 无处罚',c:'btn-playon',a:'none'},{l:'🗣️ 口头警告',c:'btn-warn',a:'verbalWarning'},{l:'🟡 黄牌',c:'btn-yellow',a:'yellowCard'},{l:'🔴 红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectSanctionAction(b.a));r2.appendChild(el);});
     decisionButtons.appendChild(r2);
     const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
     const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
@@ -1005,7 +1005,7 @@ function handleDecision(action){
     if(hMatch&&aMatch){resultType='correct';const pts=diff==='hard'?15:diff==='medium'?10:5;refRating=Math.min(100,refRating+pts);correctDecisions++;resultText=['铁腕执法！👏','判罚准确！✅','完全掌控局面！💯'][Math.floor(Math.random()*3)];}
     else if(hMatch||aMatch){resultType='partial';refRating=Math.max(0,refRating-2);partialDecisions++;resultText='一方判罚正确，但另一方处罚不当。⚠️';}
     totalDecisions++;halfIncidents++;
-    const L={none:'不给牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
+    const L={none:'无处罚',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
     decisionLog.push({d:inc.desc,c:'红队'+L[action.conflict.h]+' 蓝队'+L[action.conflict.a],r:'红队'+L[cf.h]+' 蓝队'+L[cf.a],t:resultType,m:Math.floor(gameTime)});
     // Apply cards
     const applyCard=(team,sanction)=>{
@@ -1031,7 +1031,7 @@ function handleDecision(action){
     else if(rMatch&&!sMatch){resultType='partial';refRating=Math.max(0,refRating-3);partialDecisions++;resultText='恢复方式正确，但处罚力度不对。⚠️';}
     totalDecisions++;halfIncidents++;
     if(inc.offenderTeam){if(inc.offenderTeam==='home') homeFouls++;else awayFouls++;}
-    const lbl={playOn:'继续比赛',freeKick:'任意球',droppedBall:'坠球',penalty:'点球',kickoff:'开球',none:'不给牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌',cornerHome:'🔴角球',cornerAway:'🔵角球',goalKickHome:'🔴球门球',goalKickAway:'🔵球门球',throwHome:'🔴界外球',throwAway:'🔵界外球'};
+    const lbl={playOn:'继续比赛',freeKick:'任意球',droppedBall:'坠球',penalty:'点球',kickoff:'开球',none:'无处罚',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌',cornerHome:'🔴角球',cornerAway:'🔵角球',goalKickHome:'🔴球门球',goalKickAway:'🔵球门球',throwHome:'🔴界外球',throwAway:'🔵界外球'};
     decisionLog.push({d:inc.desc,c:lbl[action.restart]+(action.sanction!=='none'?'+'+lbl[action.sanction]:''),r:lbl[cp.r]+(cp.s!=='none'?'+'+lbl[cp.s]:''),t:resultType,m:Math.floor(gameTime)});
     const s=action.sanction;
     if(s==='verbalWarning') matchWarnings++;
