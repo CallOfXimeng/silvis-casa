@@ -719,7 +719,7 @@ function showIncidentUI(){
       const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>handleDecision(b.a));decisionButtons.appendChild(el);
     });
   }else{
-    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
+    const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
     const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 直接任意球',c:'btn-foul',a:'directFK'},{l:'🚫 间接任意球',c:'btn-foul',a:'indirectFK'}];
     if(inc.pen) restarts.push({l:'📍 点球',c:'btn-foul',a:'penalty'});
     restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
@@ -736,10 +736,14 @@ function showIncidentUI(){
 function selectRestartAction(a){
   if(a==='playOn'){handleDecision({restart:'playOn',sanction:'none'});return;}
   selectedRestart=a;
+  document.querySelectorAll('#restart-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});
+  event.target.style.outline='2px solid #ffd700';event.target.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
   document.querySelectorAll('#sanction-row button').forEach(b=>b.style.opacity='1');
 }
 function selectSanctionAction(a){
   if(!selectedRestart) return;
+  document.querySelectorAll('#sanction-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});
+  event.target.style.outline='2px solid #ffd700';event.target.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
   handleDecision({restart:selectedRestart,sanction:a});
 }
 function hideIncidentUI(){incidentOverlay.classList.remove('active');varInfo.classList.remove('show');}
