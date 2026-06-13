@@ -594,7 +594,7 @@ function generateIncident(){
 }
 function triggerIncident(){
   currentIncident=generateIncident();pendingGoal=null;
-  varUsed=false;state='incident';// timer removedshowIncidentUI();
+  varUsed=false;state='incident';showIncidentUI();
 }
 function triggerGoalIncident(scoringTeam){
   const pool=GOAL_INCIDENTS.filter(i=>i.pg===scoringTeam);
@@ -603,7 +603,7 @@ function triggerGoalIncident(scoringTeam){
   const inc={...src[Math.floor(Math.random()*src.length)]};
   inc.x=scoringTeam==='home'?FR-60:FL+60;inc.y=FH/2+(Math.random()-0.5)*120;
   currentIncident=inc;pendingGoal=inc.pg||null;varUsed=false;
-  state='incident';// timer removedshowIncidentUI();
+  state='incident';showIncidentUI();
 }
 function triggerPostGoal(team){
   const pg=POST_GOAL_INCIDENTS[Math.floor(Math.random()*POST_GOAL_INCIDENTS.length)];
@@ -613,7 +613,7 @@ function triggerPostGoal(team){
   const offenders=players.filter(p=>p.team===team&&!p.redCard&&p.role.includes('ST'));
   if(offenders.length) inc.or=offenders[0].role;
   currentIncident=inc;pendingGoal=null;varUsed=false;
-  state='incident';// timer removedshowIncidentUI();
+  state='incident';showIncidentUI();
 }
 
 // ==================== CARD LOG ====================
