@@ -1139,9 +1139,28 @@ function showResult(){
   let grade,emoji;
   if(acc>=90){grade='世界级裁判';emoji='🏆'}else if(acc>=80){grade='优秀裁判';emoji='🥇'}else if(acc>=70){grade='良好裁判';emoji='🥈'}else if(acc>=60){grade='合格裁判';emoji='🥉'}else if(acc>=45){grade='还需努力';emoji='📋'}else{grade='建议回炉重造';emoji='😅'}
   resultEmoji.textContent=emoji;
+  // Save to localStorage
+  const record={acc,grade,emoji,total:totalDecisions,correct:correctDecisions,partial:partialDecisions,warnings:matchWarnings,yellows:matchYellows,reds:matchReds,goalsHome,goalsAway,tension:Math.round(tension),date:new Date().toLocaleDateString(),speed:Math.floor(HALF_DURATION_SEC/60)};
+  let history=[];try{history=JSON.parse(localStorage.getItem('refereeHistory')||'[]');}catch(e){}
+  history.push(record);if(history.length>30) history=history.slice(-30);
+  localStorage.setItem('refereeHistory',JSON.stringify(history));
+  // Stats
+  const best=history.reduce((max,r)=>r.acc>max.acc?r:max,history[0]);
+  const avg=Math.round(history.reduce((s,r)=>s+r.acc,0)/history.length);
+  // History table
+  let histHTML='<div style="margin-top:10px;text-align:left;max-height:140px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;font-size:11px;line-height:1.5">';
+  histHTML+=`<strong style="color:#ffd700;font-size:12px">📊 历史记录（共${history.length}场）</strong>`;
+  histHTML+=`<div style="color:#aaa;margin:4px 0">最高：<span style="color:#ffd700">${best.acc}%</span> · 平均：<span style="color:#ffd700">${avg}%</span></div>`;
+  const recent=history.slice(-10).reverse();
+  for(const r of recent){
+    const c=r.acc>=80?'#27ae60':r.acc>=60?'#f39c12':'#e74c3c';
+    histHTML+=`<div style="color:#aaa">${r.date} · <span style="color:${c};font-weight:700">${r.acc}%</span> · ${r.emoji} ${r.grade} · ⚽${r.goalsHome}-${r.goalsAway} · ⏱️${r.speed}分/半场</div>`;
+  }
+  histHTML+='</div>';
+  // Decision log
   let logHTML='';
   if(decisionLog.length){
-    logHTML='<div style="margin-top:12px;text-align:left;max-height:200px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px;font-size:12px;line-height:1.6">';
+    logHTML='<div style="margin-top:8px;text-align:left;max-height:160px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;font-size:12px;line-height:1.6">';
     logHTML+='<strong style="color:#ffd700;font-size:13px">📋 判罚回顾</strong><br>';
     const colors={correct:'#27ae60',partial:'#f39c12',wrong:'#e74c3c'};
     const icons={correct:'✅',partial:'⚠️',wrong:'❌'};
@@ -1154,7 +1173,7 @@ function showResult(){
     }
     logHTML+='</div>';
   }
-  resultStats.innerHTML=`<strong style="font-size:20px;color:#ffd700">${grade}</strong><br>判罚准确率：<strong style="color:#ffd700;font-size:18px">${acc}%</strong><br>正确：${correctDecisions}/${totalDecisions} · 部分正确：${partialDecisions}<br>口头警告：${matchWarnings} · 🟡 黄牌：${matchYellows} · 🔴 红牌：${matchReds}<br>比分：红队 ${goalsHome} - ${goalsAway} 蓝队<br>紧张度：${Math.round(tension)}% · 时长：${Math.floor(HALF_DURATION_SEC*2/60)}分${Math.round(HALF_DURATION_SEC*2%60)}秒`+logHTML;
+  resultStats.innerHTML=`<strong style="font-size:20px;color:#ffd700">${grade}</strong><br>判罚准确率：<strong style="color:#ffd700;font-size:18px">${acc}%</strong><br>正确：${correctDecisions}/${totalDecisions} · 部分正确：${partialDecisions}<br>口头警告：${matchWarnings} · 🟡 黄牌：${matchYellows} · 🔴 红牌：${matchReds}<br>比分：红队 ${goalsHome} - ${goalsAway} 蓝队<br>紧张度：${Math.round(tension)}% · 时长：${Math.floor(HALF_DURATION_SEC*2/60)}分${Math.round(HALF_DURATION_SEC*2%60)}秒`+histHTML+logHTML;
 }
 
 // ==================== CONTROL ====================
