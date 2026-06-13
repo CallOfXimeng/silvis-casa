@@ -277,6 +277,7 @@ let paused=false;
 let homeAttacksRight=true; // flips at halftime
 let decisionLog=[];
 let homePossTime=0,awayPossTime=0,totalPossFrames=0;
+let pendingStoppage=0;
 let ballTrail=[]; // VAR trail
 
 // ==================== FORMATIONS ====================
@@ -690,6 +691,15 @@ const INCIDENTS=[
   {id:'conf-retaliate',desc:'蓝队球员在边线被红队铲倒后，起身双手推倒红队球员，双方队友围上来。',loc:'sideline',correct:'yellowCard',cfl:{h:'yellowCard',a:'redCard'},diff:'medium',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队铲球犯规在先→黄牌。蓝队起身推人报复→红牌。',cond:i=>tension>50},
   {id:'conf-grab-neck',desc:'禁区内争抢时，红队球员掐住了蓝队球员的脖子！蓝队围上来理论。',loc:'penaltyBox',correct:'redCard',cfl:{h:'redCard',a:'yellowCard'},diff:'medium',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队掐脖子→红牌。蓝队过激围堵→黄牌。',cond:i=>tension>60},
   {id:'conf-spit-mass',desc:'红队球员向蓝队吐口水，蓝队两人冲上去推倒红队球员，双方扭打。',loc:'midfield',correct:'redCard',cfl:{h:'redCard',a:'redCard'},diff:'hard',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队吐口水→红牌。蓝队推倒对方→红牌。双方各一红。',cond:i=>tension>70},
+  // == INJURY INCIDENTS ==
+  {id:'inj-head-clash',desc:'红队和蓝队球员在争顶时头部猛烈相撞！两人都倒地不起，其中一人似乎失去意识。',loc:'midfield',correct:'stopNow',diff:'easy',pen:false,ot:null,or:null,inj:'serious',vr:'规则：疑似头部重伤/脑震荡→立即吹停，医疗人员进场。人身安全优先。'},
+  {id:'inj-knee-twist',desc:'蓝队球员在无人接触的情况下突然倒地，抱住膝盖表情痛苦，疑似韧带受伤。',loc:'midfield',correct:'stopNow',diff:'easy',pen:false,ot:null,or:null,inj:'serious',vr:'VAR：无接触倒地抱膝→可能是严重韧带伤→立即吹停。'},
+  {id:'inj-ankle-knock',desc:'红队球员在一次拼抢后一瘸一拐，但还能站立，向场边示意可以继续。',loc:'midfield',correct:'waitDeadBall',diff:'medium',pen:false,ot:null,or:null,inj:'minor',vr:'VAR：轻微碰撞，球员能站立行走→可以等死球后处理。'},
+  {id:'inj-cramp',desc:'蓝队球员在奔跑中突然停下来，坐在地上扳着脚趾，看起来是抽筋了。',loc:'midfield',correct:'waitDeadBall',diff:'easy',pen:false,ot:null,or:null,inj:'minor',vr:'VAR：疑似抽筋，非紧急情况→可以等自然死球再处理。'},
+  {id:'inj-feign-head',desc:'红队球员在被轻微碰撞后倒地捂住头部翻滚，但VAR显示实际并未碰到头部。',loc:'midfield',correct:'playOn',diff:'medium',pen:false,ot:'home',or:'ST2',inj:'feigned',vr:'VAR：球未碰到头部，球员夸张表演→继续比赛，可口头警告假摔。'},
+  {id:'inj-shoulder-fall',desc:'蓝队门将在扑救后落地时肩膀先着地，躺在地上不动，队友着急地召唤队医。',loc:'penaltyBox',correct:'stopNow',diff:'easy',pen:false,ot:null,or:null,inj:'serious',vr:'VAR：门将落地姿势可能导致肩部/锁骨骨折→立即吹停。'},
+  {id:'inj-blood-face',desc:'红队球员被鞋钉划到眉骨，面部流血，血液滴在球衣上，但球员表示可以坚持。',loc:'midfield',correct:'stopNow',diff:'easy',pen:false,ot:null,or:null,inj:'serious',vr:'规则：流血伤口必须立即处理→吹停令其离场止血，止血后方可返回。'},
+  {id:'inj-muscle-pull',desc:'蓝队边锋在冲刺后突然减速，摸着自己的大腿后侧，看起来是肌肉拉伤。',loc:'attacking',correct:'waitDeadBall',diff:'easy',pen:false,ot:null,or:null,inj:'minor',vr:'VAR：疑似肌肉拉伤但非严重→等死球后处理即可。'},
 ];
 
 // Post-goal incidents (only after a goal is scored)
@@ -781,6 +791,13 @@ function triggerGoalIncident(scoringTeam){
   inc.x=scoringTeam==='home'?FR-60:FL+60;inc.y=FH/2+(Math.random()-0.5)*120;
   currentIncident=inc;pendingGoal=inc.pg||null;varUsed=false;
   state='incident';showIncidentUI();
+}
+function triggerDroppedBallStoppage(){
+  showFeedback('partial','⏸️ 死球阶段，比赛暂停。伤停处理完毕→坠球恢复！');
+  setTimeout(()=>{
+    feedbackToast.classList.remove('show');
+    ball.x=ball.tx;ball.y=ball.ty;
+  },2000);
 }
 function triggerPostGoal(team){
   const pg=POST_GOAL_INCIDENTS[Math.floor(Math.random()*POST_GOAL_INCIDENTS.length)];
@@ -911,6 +928,14 @@ function showIncidentUI(){
     const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
     const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
     decisionButtons.appendChild(r3);
+  }else if(inc.inj){
+    // Injury: stop now / wait for dead ball / play on
+    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
+    [{l:'🚑 立即吹停',c:'btn-red',a:'stopNow'},{l:'⏸️ 等死球',c:'btn-foul',a:'waitDeadBall'},{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>handleDecision(b.a));r1.appendChild(el);});
+    decisionButtons.appendChild(r1);
+    const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
+    const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
+    decisionButtons.appendChild(r3);
   }else if(inc.cfl){
     // Conflict: restart + two-team sanctions
     const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
@@ -999,7 +1024,17 @@ function handleDecision(action){
   }
   let resultType='wrong',resultText='判罚错误！❌';
   const inc=currentIncident,diff=inc.diff,isGoal=inc.type==='goal'||inc.pg;
-  if(action.conflict){
+  if(inc.inj){
+    const correct=inc.correct;
+    if(action===correct){resultType='correct';const pts=inc.inj==='feigned'?10:5;refRating=Math.min(100,refRating+pts);correctDecisions++;resultText=['判罚正确！👏','准确判断！✅','处理得当！💯'][Math.floor(Math.random()*3)];}
+    else{resultType='wrong';const pnl=inc.inj==='serious'&&action==='playOn'?20:8;refRating=Math.max(0,refRating-pnl);resultText=inc.inj==='serious'&&action==='playOn'?'严重伤情未处理！❌球员安全第一！':'判断有误！❌';}
+    totalDecisions++;halfIncidents++;
+    const L={stopNow:'🚑立即吹停',waitDeadBall:'⏸️等死球',playOn:'▶继续比赛'};
+    decisionLog.push({d:inc.desc,c:L[action]||action,r:L[correct]||correct,t:resultType,m:Math.floor(gameTime)});
+    if(correct==='waitDeadBall'&&action==='waitDeadBall'){pendingStoppage=5+Math.random()*5;}
+    if(action==='playOn'&&inc.offenderTeam) adjustTension(action,correct,inc);
+    updateScoreboard();
+  }else if(action.conflict){
     // Conflict: two-team sanctions
     const cf=inc.cfl;
     const hMatch=action.conflict.h===cf.h,aMatch=action.conflict.a===cf.a;
@@ -1090,6 +1125,8 @@ function gameLoop(ts){
   if(state==='playing'){
     gameTime+=dt*GAME_SPEED;
     updateBallAndPlayers(dt);decayTension(dt);updateScoreboard();
+    // Delayed stoppage for injury
+    if(pendingStoppage>0){pendingStoppage-=dt;if(pendingStoppage<=0){pendingStoppage=0;triggerDroppedBallStoppage();}}
     if(!halftimePause){
       // Added time reached?
       if(addedPhase==='playing'&&gameTime>=addedTarget){
@@ -1186,7 +1223,7 @@ function resetState(){
   cardLogEntries=[];cardLog.classList.remove('active');cardLog.innerHTML='<span class="card-title">📋 出牌记录</span>';
   addedPhase='none';addedTarget=0;addedChosen=0;halfIncidents=0;halfVARs=0;halfGoals=0;
   addedDoneHalf1=false;addedDoneHalf2=false;halftimePause=false;
-  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];homePossTime=0;awayPossTime=0;totalPossFrames=0;ballTrail=[];
+  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];homePossTime=0;awayPossTime=0;totalPossFrames=0;ballTrail=[];pendingStoppage=0;[];
   addedIndicator.style.display='none';addedOverlay.classList.remove('active');
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
   feedbackToast.classList.remove('show');hideIncidentUI();
