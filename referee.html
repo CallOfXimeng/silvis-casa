@@ -180,7 +180,6 @@ canvas{display:block;width:100%;height:auto;touch-action:manipulation}
 <div id="rotate-overlay"><span class="icon">📱</span><p>请旋转屏幕<br>横屏体验更佳</p></div>
 <div id="added-time-overlay"><h3 id="added-title">⏱️ 伤停补时</h3><div class="info" id="added-info"></div><div id="added-buttons"></div></div>
 <div id="incident-overlay">
-  <div id="timer-bar"><div id="timer-bar-fill"></div></div>
   <div id="incident-desc"></div><div id="var-info"></div><div id="decision-buttons"></div>
 </div>
 <div id="title-screen">
@@ -278,6 +277,7 @@ let paused=false;
 let homeAttacksRight=true; // flips at halftime
 let decisionLog=[];
 let homePossTime=0,awayPossTime=0,totalPossFrames=0;
+let ballTrail=[]; // VAR trail
 
 // ==================== FORMATIONS ====================
 const FORMATIONS={
@@ -476,7 +476,7 @@ const INCIDENTS=[
   {id:'handball-shot',desc:'红队禁区外大力射门击中蓝队后卫手臂，手臂紧贴身体。',loc:'penaltyEdge',correct:'playOn',diff:'medium',pen:false,ot:'away',or:'RB',vr:'VAR：手臂紧贴身体，近距离来球→非手球。'},
   {id:'dive-contact',desc:'红队前锋禁区内与蓝队门将接触后倒地。门将先碰球但也碰到前锋。',loc:'penaltyBox',correct:'playOn',diff:'hard',pen:true,ot:'home',or:'ST2',vr:'VAR：门将先用手套拨球，随后轻微接触→不犯规。'},
   {id:'pen-slight',desc:'蓝队前锋禁区内切与红队防守轻微接触后倒地，极微妙。',loc:'penaltyBox',correct:'playOn',diff:'hard',pen:true,ot:'home',or:'CB1',vr:'VAR：轻微接触不构成犯规→正常对抗。'},
-  {id:'off-tight',desc:'蓝队边路传中，接应球员与最后防守球员几乎平线，边裁举旗。',loc:'attacking',correct:'playOn',diff:'hard',pen:false,ot:'away',or:'ST2',vr:'VAR划线：实际平线→不越位。'},
+  {id:'off-tight',ii:true,desc:'蓝队边路传中，接应球员与最后防守球员几乎平线，边裁举旗。',loc:'attacking',correct:'playOn',diff:'hard',pen:false,ot:'away',or:'ST2',vr:'VAR划线：实际平线→不越位。'},
   {id:'fair-charge',desc:'红队球员合理冲撞将蓝队球员撞开抢到球，蓝队要求犯规。',loc:'midfield',correct:'playOn',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR：合理冲撞，肩部接触→不犯规。'},
   // == verbalWarning ==
   {id:'minor-shove',desc:'红队球员边线轻微推蓝队球员，动作不大但对方失平衡。',loc:'sideline',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'RM',vr:'VAR：轻微接触→口头警告即可。'},
@@ -487,14 +487,14 @@ const INCIDENTS=[
   {id:'dissent-mild',desc:'红队球员对判罚表示不满，向裁判抱怨了几句但未过分。',loc:'midfield',correct:'verbalWarning',diff:'easy',pen:false,ot:'home',or:'CM1',vr:'VAR：轻微表达不满未达到黄牌程度→口头提醒。'},
   // == freeKick (no card) ==
   {id:'push-back',desc:'红队球员争顶时双手推蓝队球员背部致其摔倒。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'CM2',vr:'VAR：双手推搡→犯规→任意球，未到出牌程度。'},
-  {id:'obv-offside',desc:'蓝队前锋传球瞬间明显越位，超出防守球员两个身位。',loc:'attacking',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR确认：传球瞬间明显越位→任意球。'},
+  {id:'obv-offside',ii:true,desc:'蓝队前锋传球瞬间明显越位，超出防守球员两个身位。',loc:'attacking',correct:'freeKick',diff:'easy',pen:false,ot:'away',or:'ST1',vr:'VAR确认：传球瞬间明显越位→任意球。'},
   {id:'hold-mid',desc:'蓝队球员拼抢中拉红队球员球衣阻止其转身突破。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'CM1',vr:'VAR：拉拽持续数秒阻止进攻→任意球。'},
   {id:'trip',desc:'红队球员伸脚绊倒正在突破的蓝队边锋，未碰到球。',loc:'midfield',correct:'freeKick',diff:'easy',pen:false,ot:'home',or:'LM',vr:'VAR确认：绊人犯规→任意球。'},
-  {id:'backpass',desc:'红队后卫故意将球回传给门将，门将用手接球。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：故意回传门将手接→禁区内间接任意球。'},
-  {id:'gk-6sec',desc:'蓝队门将抱住球后迟迟不发出，已明显超过6秒。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'GK',vr:'VAR：门将持球超时→禁区内间接任意球+口头警告。'},
-  {id:'impede',desc:'红队球员未触球，故意移动到蓝队球员跑动路线上阻挡。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：无身体接触的阻挡→间接任意球。'},
-  {id:'danger-play',desc:'蓝队球员倒钩射门，脚差点踢到身边红队球员头部。',loc:'attacking',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'ST1',vr:'VAR：危险动作但无接触→间接任意球。'},
-  {id:'off-interfere',desc:'蓝队越位位置球员未触球但跑动干扰门将判断，队友远射进。',loc:'attacking',correct:'freeKick',diff:'hard',pen:false,ot:'away',or:'ST1',vr:'VAR：越位球员干扰门将→应判越位，进球无效。'},
+  {id:'backpass',ii:true,desc:'红队后卫故意将球回传给门将，门将用手接球。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'GK',vr:'VAR：故意回传门将手接→禁区内间接任意球。'},
+  {id:'gk-6sec',ii:true,desc:'蓝队门将抱住球后迟迟不发出，已明显超过6秒。',loc:'defensive',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'GK',vr:'VAR：门将持球超时→禁区内间接任意球+口头警告。'},
+  {id:'impede',ii:true,desc:'红队球员未触球，故意移动到蓝队球员跑动路线上阻挡。',loc:'midfield',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'CM2',vr:'VAR：无身体接触的阻挡→间接任意球。'},
+  {id:'danger-play',ii:true,desc:'蓝队球员倒钩射门，脚差点踢到身边红队球员头部。',loc:'attacking',correct:'freeKick',diff:'medium',pen:false,ot:'away',or:'ST1',vr:'VAR：危险动作但无接触→间接任意球。'},
+  {id:'off-interfere',ii:true,desc:'蓝队越位位置球员未触球但跑动干扰门将判断，队友远射进。',loc:'attacking',correct:'freeKick',diff:'hard',pen:false,ot:'away',or:'ST1',vr:'VAR：越位球员干扰门将→应判越位，进球无效。'},
   {id:'handball-goal',desc:'红队球员进攻中将球打入球门，进球前球似乎碰到了他上臂。',loc:'attacking',correct:'freeKick',diff:'medium',pen:false,ot:'home',or:'ST1',vr:'VAR：球碰到进攻球员上臂→手球，进球无效。'},
   // == yellowCard ==
   {id:'tackle-behind',desc:'红队球员侧后方铲倒蓝队持球球员，时机稍晚但未过分用力。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'CM1',vr:'VAR：侧后方犯规属鲁莽→黄牌。'},
@@ -594,7 +594,7 @@ function generateIncident(){
 }
 function triggerIncident(){
   currentIncident=generateIncident();pendingGoal=null;
-  varUsed=false;state='incident';decisionTimer=DECISION_TIME;showIncidentUI();
+  varUsed=false;state='incident';// timer removedshowIncidentUI();
 }
 function triggerGoalIncident(scoringTeam){
   const pool=GOAL_INCIDENTS.filter(i=>i.pg===scoringTeam);
@@ -603,7 +603,7 @@ function triggerGoalIncident(scoringTeam){
   const inc={...src[Math.floor(Math.random()*src.length)]};
   inc.x=scoringTeam==='home'?FR-60:FL+60;inc.y=FH/2+(Math.random()-0.5)*120;
   currentIncident=inc;pendingGoal=inc.pg||null;varUsed=false;
-  state='incident';decisionTimer=DECISION_TIME;showIncidentUI();
+  state='incident';// timer removedshowIncidentUI();
 }
 function triggerPostGoal(team){
   const pg=POST_GOAL_INCIDENTS[Math.floor(Math.random()*POST_GOAL_INCIDENTS.length)];
@@ -613,7 +613,7 @@ function triggerPostGoal(team){
   const offenders=players.filter(p=>p.team===team&&!p.redCard&&p.role.includes('ST'));
   if(offenders.length) inc.or=offenders[0].role;
   currentIncident=inc;pendingGoal=null;varUsed=false;
-  state='incident';decisionTimer=DECISION_TIME;showIncidentUI();
+  state='incident';// timer removedshowIncidentUI();
 }
 
 // ==================== CARD LOG ====================
@@ -701,6 +701,7 @@ function doFulltime(){
 }
 
 // ==================== UI ====================
+let selectedRestart=null;
 function showIncidentUI(){
   const inc=currentIncident;
   const locL={penaltyBox:'禁区内',penaltyEdge:'禁区边缘',midfield:'中场',defensive:'防守区域',attacking:'进攻区域',sideline:'边线附近'};
@@ -711,79 +712,102 @@ function showIncidentUI(){
   }
   incidentDesc.innerHTML=`⚠️ <strong>事件：</strong>${inc.desc}${offHTML} <span class="tag">📍 ${locL[inc.loc]||''}</span>`;
   varInfo.classList.remove('show');varInfo.textContent='';decisionButtons.innerHTML='';
+  selectedRestart=null;
   const isGoal=inc.type==='goal'||inc.pg;
   if(isGoal){
     [{l:'⚽ 进球有效',c:'btn-goal-stand',a:'goalStands'},{l:'❌ 进球无效',c:'btn-goal-disallow',a:'goalDisallowed'},{l:'📺 VAR',c:'btn-var',a:'var'}].forEach(b=>{
       const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>handleDecision(b.a));decisionButtons.appendChild(el);
     });
   }else{
-    const px=inc.pen;
-    [{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'🗣️ 口头警告',c:'btn-warn',a:'verbalWarning'},{l:px?'📍 点球':'⚽ 任意球',c:'btn-foul',a:'freeKick'},{l:px?'🟡 黄牌+点球':'🟡 黄牌',c:'btn-yellow',a:'yellowCard'},{l:px?'🔴 红牌+点球':'🔴 红牌',c:'btn-red',a:'redCard'},{l:'📺 VAR',c:'btn-var',a:'var'}].forEach(b=>{
-      const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>handleDecision(b.a));decisionButtons.appendChild(el);
-    });
+    const r1=document.createElement('div');r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
+    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 直接任意球',c:'btn-foul',a:'directFK'},{l:'🚫 间接任意球',c:'btn-foul',a:'indirectFK'}];
+    if(inc.pen) restarts.push({l:'📍 点球',c:'btn-foul',a:'penalty'});
+    restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
+    decisionButtons.appendChild(r1);
+    const r2=document.createElement('div');r2.id='sanction-row';r2.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
+    [{l:'🗣️ 口头警告',c:'btn-warn',a:'verbalWarning'},{l:'🟡 黄牌',c:'btn-yellow',a:'yellowCard'},{l:'🔴 红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectSanctionAction(b.a));r2.appendChild(el);});
+    decisionButtons.appendChild(r2);
+    const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
+    const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
+    decisionButtons.appendChild(r3);
   }
-  incidentOverlay.classList.add('active');timerBarFill.style.width='100%';
+  incidentOverlay.classList.add('active');
+}
+function selectRestartAction(a){
+  if(a==='playOn'){handleDecision({restart:'playOn',sanction:'none'});return;}
+  selectedRestart=a;
+  document.querySelectorAll('#sanction-row button').forEach(b=>b.style.opacity='1');
+}
+function selectSanctionAction(a){
+  if(!selectedRestart) return;
+  handleDecision({restart:selectedRestart,sanction:a});
 }
 function hideIncidentUI(){incidentOverlay.classList.remove('active');varInfo.classList.remove('show');}
 
+function getCorrectParts(inc){
+  const c=inc.correct;
+  if(c==='playOn') return{r:'playOn',s:'none'};
+  if(c==='verbalWarning') return{r:inc.ii?'indirectFK':'directFK',s:'verbalWarning'};
+  if(c==='freeKick') return{r:inc.ii?'indirectFK':'directFK',s:'none'};
+  if(c==='yellowCard') return{r:inc.pen?'penalty':'directFK',s:'yellowCard'};
+  if(c==='redCard') return{r:inc.pen?'penalty':'directFK',s:'redCard'};
+  return{r:'playOn',s:'none'};
+}
 function handleDecision(action){
   if(state!=='incident') return;
   if(action==='var'){
-    if(!varUsed){varUsed=true;halfVARs++;varInfo.textContent='📺 '+currentIncident.varReveals;varInfo.classList.add('show');decisionTimer=Math.max(1,decisionTimer-3);if(currentIncident.diff==='easy') refRating=Math.max(0,refRating-1);}
+    if(!varUsed){varUsed=true;halfVARs++;varInfo.textContent='📺 '+currentIncident.varReveals;varInfo.classList.add('show');if(currentIncident.diff==='easy') refRating=Math.max(0,refRating-1);}
     return;
   }
-  let resultType,resultText;
-  const inc=currentIncident,correct=inc.correct,diff=inc.diff,isGoal=inc.type==='goal'||inc.pg;
-  if(action===correct){
-    resultType='correct';const pts=diff==='hard'?15:diff==='medium'?10:5;refRating=Math.min(100,refRating+pts);correctDecisions++;
-    resultText=['判罚正确！👏','准确判断！✅','完全正确！💯','专业水准！🏅'][Math.floor(Math.random()*4)];
-  }else if(!isGoal&&((correct==='yellowCard'&&action==='redCard')||(correct==='redCard'&&action==='yellowCard')||(correct==='freeKick'&&(action==='yellowCard'||action==='verbalWarning'))||(correct==='verbalWarning'&&(action==='freeKick'||action==='yellowCard')))){
-    resultType='partial';refRating=Math.max(0,refRating-3);partialDecisions++;resultText='部分正确，处罚力度不对。⚠️';
-  }else{resultType='wrong';const pnl=diff==='easy'?12:diff==='medium'?7:3;refRating=Math.max(0,refRating-pnl);resultText='判罚错误！❌';}
-  totalDecisions++;halfIncidents++;
-  if(!isGoal&&inc.offenderTeam){if(inc.offenderTeam==='home') homeFouls++;else awayFouls++;}
-  if(action==='verbalWarning') matchWarnings++;
-  // Cards
-  if(action==='yellowCard'||action==='redCard'){
-    const offender=findPlayer(inc.offenderTeam,inc.offenderRole);
-    if(offender&&!offender.redCard){
-      if(action==='yellowCard'){offender.yellowCards++;matchYellows++;if(offender.team==='home') homeCards++;else awayCards++;
-        if(offender.yellowCards>=2){offender.redCard=true;matchReds++;addCardEntry(offender.team,offender.number,'yellow2red');resultText='两黄变一红！'+plabel(offender)+' 被罚下！🔴';resultType='correct';}
-        else addCardEntry(offender.team,offender.number,'yellow');
-      }else{offender.redCard=true;matchReds++;if(offender.team==='home') homeCards++;else awayCards++;addCardEntry(offender.team,offender.number,'red');}
+  let resultType='wrong',resultText='判罚错误！❌';
+  const inc=currentIncident,diff=inc.diff,isGoal=inc.type==='goal'||inc.pg;
+  if(!isGoal&&typeof action==='object'){
+    const cp=getCorrectParts(inc);
+    const rMatch=action.restart===cp.r;
+    const sMatch=action.sanction===cp.s;
+    if(rMatch&&sMatch){resultType='correct';const pts=diff==='hard'?15:diff==='medium'?10:5;refRating=Math.min(100,refRating+pts);correctDecisions++;resultText=['判罚正确！👏','准确判断！✅','完全正确！💯','专业水准！🏅'][Math.floor(Math.random()*4)];}
+    else if(rMatch&&!sMatch){resultType='partial';refRating=Math.max(0,refRating-3);partialDecisions++;resultText='恢复方式正确，但处罚力度不对。⚠️';}
+    totalDecisions++;halfIncidents++;
+    if(inc.offenderTeam){if(inc.offenderTeam==='home') homeFouls++;else awayFouls++;}
+    const lbl={playOn:'继续比赛',directFK:'直接任意球',indirectFK:'间接任意球',penalty:'点球',none:'无牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
+    decisionLog.push({d:inc.desc,c:lbl[action.restart]+(action.sanction!=='none'?'+'+lbl[action.sanction]:''),r:lbl[cp.r]+(cp.s!=='none'?'+'+lbl[cp.s]:''),t:resultType,m:Math.floor(gameTime)});
+    const s=action.sanction;
+    if(s==='verbalWarning') matchWarnings++;
+    if(s==='yellowCard'||s==='redCard'){
+      const offender=findPlayer(inc.offenderTeam,inc.offenderRole);
+      if(offender&&!offender.redCard){
+        if(s==='yellowCard'){offender.yellowCards++;matchYellows++;if(offender.team==='home') homeCards++;else awayCards++;if(offender.yellowCards>=2){offender.redCard=true;matchReds++;addCardEntry(offender.team,offender.number,'yellow2red');resultText='两黄变一红！'+plabel(offender)+' 被罚下！🔴';resultType='correct';}else addCardEntry(offender.team,offender.number,'yellow');}
+        else{offender.redCard=true;matchReds++;if(offender.team==='home') homeCards++;else awayCards++;addCardEntry(offender.team,offender.number,'red');}
+      }
     }
-  }
-  // Goal
-  if(isGoal){
+    if(inc.pen&&rMatch&&(cp.s==='yellowCard'||cp.s==='redCard'||cp.s==='none')&&Math.random()<0.78){
+      const st=inc.offenderTeam==='home'?'away':'home';
+      if(st==='home'){goalsHome++;halfGoals++;lastGoalTeam='home';lastGoalGameTime=gameTime;}else{goalsAway++;halfGoals++;lastGoalTeam='away';lastGoalGameTime=gameTime;}
+      resultText+=' 点球罚进！⚽';pendingPostGoal=st;
+    }
+    adjustTension(s,inc.correct,inc);
+    updateScoreboard();
+  }else if(isGoal&&typeof action==='string'){
+    const correct=inc.correct;
+    if(action===correct){resultType='correct';const pts=diff==='hard'?15:diff==='medium'?10:5;refRating=Math.min(100,refRating+pts);correctDecisions++;resultText=['判罚正确！👏','准确判断！✅','完全正确！💯','专业水准！🏅'][Math.floor(Math.random()*4)];}
+    totalDecisions++;halfIncidents++;
+    const L={goalStands:'进球有效',goalDisallowed:'进球无效'};
+    decisionLog.push({d:inc.desc,c:L[action]||action,r:L[correct]||correct,t:resultType,m:Math.floor(gameTime)});
     if(action==='goalStands'&&inc.pg){
-      if(inc.pg==='home'){goalsHome++;halfGoals++;lastGoalTeam='home';lastGoalGameTime=gameTime;}
-      else{goalsAway++;halfGoals++;lastGoalTeam='away';lastGoalGameTime=gameTime;}
+      if(inc.pg==='home'){goalsHome++;halfGoals++;lastGoalTeam='home';lastGoalGameTime=gameTime;}else{goalsAway++;halfGoals++;lastGoalTeam='away';lastGoalGameTime=gameTime;}
+      pendingPostGoal=inc.pg;
     }
     if(action==='goalDisallowed'&&inc.offenderTeam&&inc.offenderRole&&correct==='goalDisallowed'){
       const off=findPlayer(inc.offenderTeam,inc.offenderRole);
       if(off&&!off.redCard){off.yellowCards++;matchYellows++;if(off.team==='home') homeCards++;else awayCards++;addCardEntry(off.team,off.number,'yellow');if(off.yellowCards>=2){off.redCard=true;matchReds++;}}
     }
-    // Queue post-goal event
-    if(action==='goalStands') pendingPostGoal=inc.pg;
+    adjustTension(action,correct,inc);
+    updateScoreboard();
   }
-  // Penalty → auto goal chance
-  if(!isGoal&&inc.pen&&action===correct&&(correct==='yellowCard'||correct==='redCard'||correct==='freeKick')){
-    if(Math.random()<0.78){
-      const scoringTeam=inc.offenderTeam==='home'?'away':'home';
-      if(scoringTeam==='home'){goalsHome++;halfGoals++;lastGoalTeam='home';lastGoalGameTime=gameTime;}
-      else{goalsAway++;halfGoals++;lastGoalTeam='away';lastGoalGameTime=gameTime;}
-      resultText+=' 点球罚进！⚽';
-      pendingPostGoal=scoringTeam;
-    }else{resultText+=' 点球被扑出！🧤';}
-  }
-  adjustTension(action,correct,inc);
-  updateScoreboard();
   showFeedback(resultType,resultText);
-    decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
-    const L={playOn:'继续比赛',verbalWarning:'口头警告',freeKick:'任意球/点球',yellowCard:'黄牌',redCard:'红牌',goalStands:'进球有效',goalDisallowed:'进球无效'};
-    decisionLog.push({d:inc.desc,c:L[action]||action,r:L[correct]||correct,t:resultType,m:Math.floor(gameTime)});
+  decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
   state='feedback';feedbackTimer=FEEDBACK_MS;
-}
+
 function showFeedback(type,text){feedbackToast.className=type+' show';feedbackToast.textContent=text;setTimeout(()=>{feedbackToast.classList.remove('show');},FEEDBACK_MS-200);}
 function updateScoreboard(){
   scoreHome.textContent=goalsHome;scoreAway.textContent=goalsAway;
@@ -819,18 +843,28 @@ function gameLoop(ts){
       }
     }
   }
-  if(state==='incident'){
-    decisionTimer-=dt;const pct=Math.max(0,(decisionTimer/DECISION_TIME)*100);timerBarFill.style.width=pct+'%';
-    if(pct<30) timerBarFill.style.background='#e74c3c';else if(pct<60) timerBarFill.style.background='#f39c12';else timerBarFill.style.background='#27ae60';
-    if(decisionTimer<=0){totalDecisions++;halfIncidents++;refRating=Math.max(0,refRating-10);updateScoreboard();showFeedback('wrong','⏰ 时间到！');decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);const L={playOn:'继续比赛',verbalWarning:'口头警告',freeKick:'任意球/点球',yellowCard:'黄牌',redCard:'红牌',goalStands:'进球有效',goalDisallowed:'进球无效'};decisionLog.push({d:currentIncident.desc,c:'超时未判',r:L[currentIncident.correct]||currentIncident.correct,t:'wrong',m:Math.floor(gameTime)});state='feedback';feedbackTimer=FEEDBACK_MS;}
-  }
+  if(state==='incident'){/* no time limit */}
   if(state==='feedback'){feedbackTimer-=dt*1000;if(feedbackTimer<=0){hideIncidentUI();state='playing';incidentCooldown=INCIDENT_MIN+Math.random()*(INCIDENT_MAX-INCIDENT_MIN);
     // Check for post-goal event
     if(pendingPostGoal&&Math.random()<0.35){const pgTeam=pendingPostGoal;pendingPostGoal=null;triggerPostGoal(pgTeam);}
     else pendingPostGoal=null;
   }}
 
+  // Ball trail tracking (always, for VAR)
+  ballTrail.push({x:ball.x,y:ball.y});if(ballTrail.length>150) ballTrail.shift();
+
   drawField();drawPlayers();drawBall();
+  // Draw VAR trail if viewing
+  if(varUsed&&ballTrail.length>1){
+    ctx.strokeStyle='rgba(255,215,0,0.7)';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(ballTrail[0].x,ballTrail[0].y);
+    for(let i=1;i<ballTrail.length;i++){ctx.lineTo(ballTrail[i].x,ballTrail[i].y);}
+    ctx.stroke();
+    // Trail dots at key points
+    for(let i=0;i<ballTrail.length;i+=30){
+      ctx.fillStyle='rgba(255,215,0,0.8)';ctx.beginPath();ctx.arc(ballTrail[i].x,ballTrail[i].y,3,0,Math.PI*2);ctx.fill();
+    }
+  }
   if(state==='incident'&&currentIncident){ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(currentIncident.x,currentIncident.y,18,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);const pulse=Math.sin(Date.now()/200)*0.5+0.5;ctx.fillStyle=`rgba(255,0,0,${0.4+pulse*0.4})`;ctx.beginPath();ctx.arc(currentIncident.x,currentIncident.y,10,0,Math.PI*2);ctx.fill();}
   if(state!=='fulltime'&&state!=='title') requestAnimationFrame(gameLoop);
 }
@@ -869,7 +903,7 @@ function resetState(){
   cardLogEntries=[];cardLog.classList.remove('active');cardLog.innerHTML='<span class="card-title">📋 出牌记录</span>';
   addedPhase='none';addedTarget=0;addedChosen=0;halfIncidents=0;halfVARs=0;halfGoals=0;
   addedDoneHalf1=false;addedDoneHalf2=false;halftimePause=false;
-  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];homePossTime=0;awayPossTime=0;totalPossFrames=0;
+  lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];homePossTime=0;awayPossTime=0;totalPossFrames=0;ballTrail=[];
   addedIndicator.style.display='none';addedOverlay.classList.remove('active');
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
   feedbackToast.classList.remove('show');hideIncidentUI();
