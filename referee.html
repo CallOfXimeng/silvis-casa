@@ -298,7 +298,7 @@ function createFormation(team,defendsRight){
     const by=defendsRight?1-p.by:p.by;
     return {
       x:FL+bx*(FR-FL),y:FT+by*(FB-FT),bx,by,tx:0,ty:0,vx:0,vy:0,
-      team,role:p.r,number:nums[i],hasBall:false,yellowCards:0,redCard:false,foulCount:0,formation:fname
+      team,role:p.r,number:nums[i],hasBall:false,yellowCards:0,redCard:false,foulCount:0,formation:fname,tracksBack:['ST','ST1','ST2','LW','RW','CAM'].includes(p.r)?Math.random()<0.5:true
     };
   });
 }
@@ -361,10 +361,10 @@ const HEATMAPS={
   'CB2':{x:[.06,.28],y:[.50,.78]}, 'RB':{x:[.06,.30],y:[.78,.98]},
   'LM':{x:[.20,.50],y:[.02,.25]}, 'CM1':{x:[.22,.55],y:[.18,.50]},
   'CM2':{x:[.22,.55],y:[.50,.82]}, 'RM':{x:[.20,.50],y:[.75,.98]},
-  'ST1':{x:[.35,.68],y:[.22,.50]}, 'ST2':{x:[.35,.68],y:[.50,.78]},
+  'ST1':{x:[.35,.82],y:[.22,.50]}, 'ST2':{x:[.35,.82],y:[.50,.78]},
   'CDM1':{x:[.14,.38],y:[.22,.50]}, 'CDM2':{x:[.14,.38],y:[.50,.78]},
-  'CAM':{x:[.32,.58],y:[.25,.75]}, 'LW':{x:[.28,.58],y:[.02,.25]},
-  'ST':{x:[.35,.68],y:[.30,.70]}, 'RW':{x:[.28,.58],y:[.75,.98]},
+  'CAM':{x:[.30,.78],y:[.25,.75]}, 'LW':{x:[.28,.78],y:[.02,.25]},
+  'ST':{x:[.35,.82],y:[.30,.70]}, 'RW':{x:[.28,.78],y:[.75,.98]},
   'CM3':{x:[.22,.55],y:[.55,.85]},
   'CB3':{x:[.06,.25],y:[.55,.85]},
 };
@@ -445,8 +445,9 @@ function updateBallAndPlayers(dt){
       const driftY=hyMid+(Math.cos(Date.now()/2500+p.by*10)*hyRng*0.5)+(Math.random()-0.5)*hyRng*0.3;
       p.tx=driftX;p.ty=driftY;
     }
-    // Defenders stay deeper
+    // Defenders stay deeper; forwards who don't track back stay forward
     if(isDef){p.tx=Math.max(hxMin-5,p.tx);if(ad===1) p.tx=Math.min(hxMid+40,p.tx);else p.tx=Math.max(hxMid-40,p.tx);}
+    if(!p.tracksBack){const minX=FL+p.bx*(FR-FL);if(ad===1) p.tx=Math.max(minX-30,p.tx);else p.tx=Math.min(minX+30,p.tx);}
     // Final clamp
     p.tx=Math.max(FL+5,Math.min(FR-5,p.tx));p.ty=Math.max(FT+5,Math.min(FB-5,p.ty));
     // Velocity-based smooth movement
