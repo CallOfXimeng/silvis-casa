@@ -680,6 +680,15 @@ const INCIDENTS=[
   {id:'trail-foul2',desc:'{team}在落后情况下，中场球员急躁地从背后推搡对方。',loc:'midfield',correct:'yellowCard',diff:'medium',pen:false,ot:'away',or:'CM1',rst:'freeKick',vr:'VAR：落后方急躁犯规→黄牌。',cond:i=>teamTrailing(i.offenderTeam)},
   {id:'lead-timewaste2',desc:'{team}在领先时，边后卫在掷界外球时明显拖延时间。',loc:'sideline',correct:'yellowCard',diff:'medium',pen:false,ot:'home',or:'LB',rst:'freeKick',vr:'VAR：领先方拖延时间→黄牌。',cond:i=>teamLeading(i.offenderTeam)},
 
+  // == CONFLICT (high tension) ==
+  {id:'conf-push-shove',desc:'双方多名球员互相推搡！红队和蓝队各有球员是挑事者。',loc:'midfield',correct:'yellowCard',cfl:{h:'yellowCard',a:'yellowCard'},diff:'medium',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：双方都有推搡→对双方各出示一张黄牌。',cond:i=>tension>45},
+  {id:'conf-headtohead',desc:'红队球员被犯规后起身用头顶撞蓝队球员，蓝队球员也推了回去。',loc:'midfield',correct:'redCard',cfl:{h:'redCard',a:'yellowCard'},diff:'medium',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队头顶撞人→红牌。蓝队推搡回应→黄牌。',cond:i=>tension>55},
+  {id:'conf-mass-brawl',desc:'一次争议判罚后双方全队围在一起推搡辱骂！四五名球员参与。',loc:'midfield',correct:'redCard',cfl:{h:'redCard',a:'redCard'},diff:'hard',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：双方都有球员动手→双方各出示一张红牌，其余口头警告。',cond:i=>tension>65},
+  {id:'conf-bench-clear',desc:'替补席球员也冲进场内加入冲突！场面完全失控！',loc:'midfield',correct:'redCard',cfl:{h:'redCard',a:'redCard'},diff:'hard',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：替补球员冲入场内→双方各一红牌，赛后追加处罚。',cond:i=>tension>75},
+  {id:'conf-push-ref',desc:'蓝队球员在抗议判罚时推了裁判胸口一下！全场哗然！',loc:'midfield',correct:'redCard',cfl:{h:'none',a:'redCard'},diff:'easy',pen:false,ot:null,or:null,rst:'freeKick',vr:'规则：对裁判身体接触→红牌，红队球员口头警告。',cond:i=>tension>50},
+  {id:'conf-retaliate',desc:'蓝队球员在边线被红队铲倒后，起身双手推倒红队球员，双方队友围上来。',loc:'sideline',correct:'yellowCard',cfl:{h:'yellowCard',a:'redCard'},diff:'medium',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队铲球犯规在先→黄牌。蓝队起身推人报复→红牌。',cond:i=>tension>50},
+  {id:'conf-grab-neck',desc:'禁区内争抢时，红队球员掐住了蓝队球员的脖子！蓝队围上来理论。',loc:'penaltyBox',correct:'redCard',cfl:{h:'redCard',a:'yellowCard'},diff:'medium',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队掐脖子→红牌。蓝队过激围堵→黄牌。',cond:i=>tension>60},
+  {id:'conf-spit-mass',desc:'红队球员向蓝队吐口水，蓝队两人冲上去推倒红队球员，双方扭打。',loc:'midfield',correct:'redCard',cfl:{h:'redCard',a:'redCard'},diff:'hard',pen:false,ot:null,or:null,rst:'freeKick',vr:'VAR：红队吐口水→红牌。蓝队推倒对方→红牌。双方各一红。',cond:i=>tension>70},
 ];
 
 // Post-goal incidents (only after a goal is scored)
@@ -809,6 +818,10 @@ function adjustTension(action,correct,inc){
   if((correct==='yellowCard'||correct==='redCard')&&(action==='verbalWarning'||action==='playOn'||action==='none'||action==='freeKick')){
     tension=Math.min(100,tension+7);lenientCalls++;
   }
+  // Wrong/missed cards spike tension
+  if(action==='yellowCard'&&correct!=='yellowCard') tension=Math.min(100,tension+12);
+  if(action==='redCard'&&correct!=='redCard') tension=Math.min(100,tension+18);
+  if(correct==='redCard'&&action!=='redCard') tension=Math.min(100,tension+7);
   if(action===correct&&action!=='playOn'&&action!=='verbalWarning') tension=Math.max(10,tension-2);
   updateTensionDisplay();
 }
@@ -868,7 +881,7 @@ function doFulltime(){
 }
 
 // ==================== UI ====================
-let selectedRestart=null,selectedSanction=null;
+let selectedRestart=null,selectedSanction=null,selectedHomeS=null,selectedAwayS=null;
 function showIncidentUI(){
   const inc=currentIncident;
   const locL={penaltyBox:'禁区内',penaltyEdge:'禁区边缘',midfield:'中场',defensive:'防守区域',attacking:'进攻区域',sideline:'边线附近'};
@@ -897,6 +910,28 @@ function showIncidentUI(){
     const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
     const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
     decisionButtons.appendChild(r3);
+  }else if(inc.cfl){
+    // Conflict: restart + two-team sanctions
+    const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
+    const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 任意球',c:'btn-foul',a:'freeKick'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'},{l:'🏁 开球',c:'btn-goal-stand',a:'kickoff'}];
+    if(inc.pen) restarts.push({l:'📍 点球',c:'btn-foul',a:'penalty'});
+    restarts.forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.addEventListener('click',()=>selectRestartAction(b.a));r1.appendChild(el);});
+    decisionButtons.appendChild(r1);
+    // Home sanction
+    const hrow=document.createElement('div');hrow.style.cssText='display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:3px;align-items:center';
+    const hl=document.createElement('span');hl.textContent='🔴红队:';hl.style.cssText='color:#e74c3c;font-size:12px;font-weight:700;margin-right:4px';hrow.appendChild(hl);
+    [{l:'不给牌',c:'btn-playon',a:'none'},{l:'口头',c:'btn-warn',a:'verbalWarning'},{l:'黄牌',c:'btn-yellow',a:'yellowCard'},{l:'红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectConflictSanction('h',b.a,el));hrow.appendChild(el);});
+    hrow.id='conf-h-row';decisionButtons.appendChild(hrow);
+    // Away sanction
+    const arow=document.createElement('div');arow.style.cssText='display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:3px;align-items:center';
+    const al=document.createElement('span');al.textContent='🔵蓝队:';al.style.cssText='color:#3498db;font-size:12px;font-weight:700;margin-right:4px';arow.appendChild(al);
+    [{l:'不给牌',c:'btn-playon',a:'none'},{l:'口头',c:'btn-warn',a:'verbalWarning'},{l:'黄牌',c:'btn-yellow',a:'yellowCard'},{l:'红牌',c:'btn-red',a:'redCard'}].forEach(b=>{const el=document.createElement('button');el.className=b.c;el.textContent=b.l;el.style.opacity='0.5';el.addEventListener('click',()=>selectConflictSanction('a',b.a,el));arow.appendChild(el);});
+    arow.id='conf-a-row';decisionButtons.appendChild(arow);
+    // VAR
+    const r3=document.createElement('div');r3.style.cssText='display:flex;gap:6px;justify-content:center';
+    const vb=document.createElement('button');vb.className='btn-var';vb.textContent='📺 VAR 回看';vb.addEventListener('click',()=>handleDecision('var'));r3.appendChild(vb);
+    decisionButtons.appendChild(r3);
+    selectedHomeS=null;selectedAwayS=null;
   }else{
     const r1=document.createElement('div');r1.id='restart-row';r1.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:5px';
     const restarts=[{l:'▶ 继续比赛',c:'btn-playon',a:'playOn'},{l:'⚽ 任意球',c:'btn-foul',a:'freeKick'},{l:'🔄 坠球',c:'btn-playon',a:'droppedBall'},{l:'🏁 开球',c:'btn-goal-stand',a:'kickoff'}];
@@ -918,7 +953,7 @@ function selectRestartAction(a){
   document.querySelectorAll('#restart-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});
   event.target.style.outline='2px solid #ffd700';event.target.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
   document.querySelectorAll('#sanction-row button').forEach(b=>{b.style.opacity='1';b.style.outline='';b.style.boxShadow='';});
-  // Auto-highlight 不给牌
+  document.querySelectorAll('#conf-h-row button,#conf-a-row button').forEach(b=>{b.style.opacity='1';b.style.outline='';b.style.boxShadow='';});
   const nb=document.querySelectorAll('#sanction-row button')[0];
   if(nb){nb.style.outline='2px solid #ffd700';nb.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';selectedSanction='none';}
 }
@@ -928,6 +963,14 @@ function selectSanctionAction(a){
   document.querySelectorAll('#sanction-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});
   event.target.style.outline='2px solid #ffd700';event.target.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
   handleDecision({restart:selectedRestart,sanction:a});
+}
+function selectConflictSanction(team,a,el){
+  if(team==='h'){selectedHomeS=a;document.querySelectorAll('#conf-h-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});}
+  else{selectedAwayS=a;document.querySelectorAll('#conf-a-row button').forEach(b=>{b.style.outline='';b.style.boxShadow='';});}
+  el.style.outline='2px solid #ffd700';el.style.boxShadow='0 0 10px rgba(255,215,0,0.4)';
+  if(selectedHomeS!==null&&selectedAwayS!==null){
+    handleDecision({restart:selectedRestart||'freeKick',conflict:{h:selectedHomeS,a:selectedAwayS}});
+  }
 }
 function hideIncidentUI(){incidentOverlay.classList.remove('active');varInfo.classList.remove('show');}
 
@@ -955,7 +998,32 @@ function handleDecision(action){
   }
   let resultType='wrong',resultText='判罚错误！❌';
   const inc=currentIncident,diff=inc.diff,isGoal=inc.type==='goal'||inc.pg;
-  if(!isGoal&&typeof action==='object'){
+  if(action.conflict){
+    // Conflict: two-team sanctions
+    const cf=inc.cfl;
+    const hMatch=action.conflict.h===cf.h,aMatch=action.conflict.a===cf.a;
+    if(hMatch&&aMatch){resultType='correct';const pts=diff==='hard'?15:diff==='medium'?10:5;refRating=Math.min(100,refRating+pts);correctDecisions++;resultText=['铁腕执法！👏','判罚准确！✅','完全掌控局面！💯'][Math.floor(Math.random()*3)];}
+    else if(hMatch||aMatch){resultType='partial';refRating=Math.max(0,refRating-2);partialDecisions++;resultText='一方判罚正确，但另一方处罚不当。⚠️';}
+    totalDecisions++;halfIncidents++;
+    const L={none:'不给牌',verbalWarning:'口头警告',yellowCard:'黄牌',redCard:'红牌'};
+    decisionLog.push({d:inc.desc,c:'红队'+L[action.conflict.h]+' 蓝队'+L[action.conflict.a],r:'红队'+L[cf.h]+' 蓝队'+L[cf.a],t:resultType,m:Math.floor(gameTime)});
+    // Apply cards
+    const applyCard=(team,sanction)=>{
+      if(sanction==='none'&&sanction==='verbalWarning') return;
+      if(sanction==='verbalWarning'){matchWarnings++;return;}
+      if(sanction==='yellowCard'||sanction==='redCard'){
+        const offenders=players.filter(p=>p.team===team&&!p.redCard&&!p.role.includes('GK'));
+        const off=offenders[Math.floor(Math.random()*offenders.length)];
+        if(off&&!off.redCard){
+          if(sanction==='yellowCard'){off.yellowCards++;matchYellows++;if(off.team==='home') homeCards++;else awayCards++;if(off.yellowCards>=2){off.redCard=true;matchReds++;addCardEntry(off.team,off.number,'yellow2red');resultText+=' 两黄变一红！'+plabel(off)+'被罚下！';}else addCardEntry(off.team,off.number,'yellow');}
+          else{off.redCard=true;matchReds++;if(off.team==='home') homeCards++;else awayCards++;addCardEntry(off.team,off.number,'red');}
+        }
+      }
+    };
+    applyCard('home',action.conflict.h);applyCard('away',action.conflict.a);
+    tension=Math.max(10,tension-(cf.h!=='none'||cf.a!=='none'?8:0));
+    updateTensionDisplay();updateScoreboard();
+  }else if(!isGoal&&typeof action==='object'){
     const cp=getCorrectParts(inc);
     const rMatch=action.restart===cp.r;
     const sMatch=action.sanction===cp.s;
