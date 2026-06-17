@@ -1,0 +1,369 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>书摘与番茄钟 App v1.6 Demo</title>
+    <style>
+        /* --- CSS 变量 --- */
+        :root {
+            --bg-color: #eef2f5; --container-bg: #ffffff; --text-main: #333333;
+            --text-sub: #555555; --text-muted: #888888; --border-color: #eeeeee;
+            --card-bg: #fcfcfc; --shelf-color: #d2b48c; --quote-bg: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            --header-border: #333333; --btn-nav-bg: #333333; --accent-color: #007bff;
+            --overlay-bg: rgba(0, 0, 0, 0.5);
+        }
+        body.dark-mode {
+            --bg-color: #121212; --container-bg: #1e1e1e; --text-main: #e0e0e0;
+            --text-sub: #b0b0b0; --text-muted: #666666; --border-color: #333333;
+            --card-bg: #2d2d2d; --shelf-color: #5c4d3c; --quote-bg: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+            --header-border: #e0e0e0; --btn-nav-bg: #555555; --accent-color: #4da3ff;
+            --overlay-bg: rgba(0, 0, 0, 0.7);
+        }
+
+        /* --- 基础布局 --- */
+        body { font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; display: flex; justify-content: center; transition: 0.3s; }
+        #app-container { width: 100%; max-width: 400px; background-color: var(--container-bg); min-height: 100vh; box-shadow: 0 0 15px rgba(0,0,0,0.1); position: relative; padding-bottom: 20px; transition: 0.3s; overflow-x: hidden; padding-top: env(safe-area-inset-top); }
+        .view { display: none; padding: 20px; }
+        .view.active { display: block; }
+
+        /* --- 头部 --- */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--header-border); padding-bottom: 10px; margin-bottom: 20px; }
+        .header h2 { border: none; margin: 0; padding: 0; }
+        .header-actions { display: flex; gap: 8px; }
+        .nav-btn { width: auto; margin: 0; padding: 6px 12px; background-color: var(--btn-nav-bg); color: white; border-radius: 20px; border: none; cursor: pointer; font-size: 13px; font-weight: bold; }
+
+        /* --- 书架与书籍 --- */
+        .shelf-title { color: var(--text-sub); margin: 0 0 5px 0; font-size: 14px; letter-spacing: 1px; }
+        .book-list { list-style: none; padding: 15px; margin: 0 0 25px 0; background-color: var(--card-bg); border-bottom: 12px solid var(--shelf-color); border-radius: 4px; display: flex; flex-direction: column; gap: 10px; }
+        .book-item { background-color: var(--container-bg); padding: 12px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-left: 6px solid; position: relative; }
+        .book-title { font-size: 15px; font-weight: bold; margin-bottom: 5px; }
+
+        .progress-wrapper { width: 100%; height: 6px; background-color: var(--border-color); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: var(--accent-color); border-radius: 3px; transition: width 0.5s ease-in-out; }
+        .book-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+
+        .quote-box { background: var(--quote-bg); border-left: 4px solid #6c757d; padding: 15px; margin-top: 10px; border-radius: 6px; color: var(--text-sub); font-size: 14px; line-height: 1.6; }
+
+        /* --- 个人中心仪表盘 --- */
+        .stats-grid { display: grid; gap: 10px; margin-bottom: 20px; }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .stat-box { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px 5px; text-align: center; }
+        .stat-num { font-size: 20px; font-weight: bold; color: var(--accent-color); margin-bottom: 5px; }
+        .stat-num small { font-size: 12px; font-weight: normal; color: var(--text-muted); margin-left: 2px; }
+        .stat-label { font-size: 11px; color: var(--text-sub); }
+
+        .menu-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border-color); }
+        .menu-list li { padding: 16px 5px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+
+        /* --- 弹窗与表单 --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--container-bg); padding: 20px; border-radius: 10px; width: 85%; max-width: 320px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content h3 { margin-top: 0; margin-bottom: 15px; color: var(--text-main); font-size: 16px; text-align: center; }
+
+        button { padding: 12px 15px; border: none; border-radius: 6px; background-color: var(--accent-color); color: white; cursor: pointer; font-size: 15px; margin: 5px 0; width: 100%; font-weight: 500; }
+        button.secondary { background-color: #6c757d; }
+        button.success { background-color: #28a745; }
+        button.warning { background-color: #ffc107; color: black; }
+        button.highlight-cancel { background-color: var(--accent-color); box-shadow: 0 0 10px rgba(0,123,255,0.6); font-weight: bold; border: 2px solid #fff; }
+        body.dark-mode button.highlight-cancel { border: 2px solid #000; }
+
+        .location-input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--container-bg); color: var(--text-main); font-size: 14px; }
+        .editor-toolbar { display: flex; gap: 5px; padding: 10px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-bottom: none; border-radius: 6px 6px 0 0; flex-wrap: wrap; }
+        .editor-toolbar button { width: auto; padding: 6px 10px; margin: 0; background-color: var(--border-color); color: var(--text-main); font-size: 14px; }
+        .editor-content { min-height: 160px; padding: 15px; border: 1px solid var(--border-color); border-radius: 0 0 6px 6px; background-color: var(--container-bg); outline: none; line-height: 1.6; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div id="home-view" class="view active">
+        <div class="header">
+            <h2>我的书架</h2>
+            <div class="header-actions">
+                <button class="nav-btn" onclick="openModal('add-book-modal')">+ 书</button>
+                <button class="nav-btn" onclick="openGlobalEditor()">+ 笔记</button>
+                <button class="nav-btn" onclick="openMineView()">我的</button>
+            </div>
+        </div>
+
+        <div class="shelf-title">在读</div>
+        <ul id="reading-list" class="book-list"></ul>
+        <div class="shelf-title">想读</div>
+        <ul id="want-list" class="book-list"></ul>
+        <div class="shelf-title">已读</div>
+        <ul id="read-list" class="book-list"></ul>
+
+        <div style="font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 5px;">近期书摘回顾</div>
+        <div id="random-quote" class="quote-box"></div>
+    </div>
+
+    <div id="detail-view" class="view">
+        <div class="header" style="margin-bottom: 10px;">
+            <button class="secondary" onclick="switchView('home-view')" style="width: auto; margin: 0;">← 返回</button>
+            <h2 style="margin-left: 15px; flex-grow: 1;">书籍详情</h2>
+        </div>
+        <h2 id="detail-title" style="margin-top: 20px; border:none;">书名</h2>
+        <p id="detail-status" style="color: var(--text-muted); margin-top:0;"></p>
+        <div id="detail-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;"></div>
+    </div>
+
+    <div id="mine-view" class="view">
+        <div class="header">
+            <button class="secondary" onclick="switchView('home-view')" style="width: auto; margin: 0;">← 返回</button>
+            <h2 style="margin-left: 15px; flex-grow: 1;">个人中心</h2>
+        </div>
+
+        <h3 style="margin-top:0; font-size: 15px; color: var(--text-sub);">书籍概览</h3>
+        <div class="stats-grid grid-4">
+            <div class="stat-box"><div class="stat-num" id="stat-reading">0</div><div class="stat-label">在读</div></div>
+            <div class="stat-box"><div class="stat-num" id="stat-want">0</div><div class="stat-label">想读</div></div>
+            <div class="stat-box"><div class="stat-num" id="stat-read">0</div><div class="stat-label">已读</div></div>
+            <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">总数</div></div>
+        </div>
+
+        <h3 style="margin-top:20px; font-size: 15px; color: var(--text-sub);">专注阅读</h3>
+        <div class="stats-grid grid-2">
+            <div class="stat-box"><div class="stat-num"><span id="stat-week-time">0</span><small>分钟</small></div><div class="stat-label">最近一周</div></div>
+            <div class="stat-box"><div class="stat-num"><span id="stat-total-time">0</span><small>分钟</small></div><div class="stat-label">历史总时长</div></div>
+        </div>
+
+        <ul class="menu-list" style="margin-top: 20px;">
+            <li>深色模式 <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" style="transform: scale(1.5);"></li>
+        </ul>
+    </div>
+
+    <div id="editor-view" class="view">
+        <div class="header">
+            <button class="secondary" onclick="attemptCloseEditor()" style="width: auto; margin: 0;">← 取消</button>
+            <h2 id="editor-title" style="margin-left: 15px; flex-grow: 1; font-size: 18px;">新建内容</h2>
+            <button class="nav-btn" onclick="saveExcerpt()" style="background-color: #28a745;">保存</button>
+        </div>
+
+        <input type="text" id="excerpt-location" class="location-input" placeholder="输入位置：如 P42 或 45%">
+        <div class="editor-toolbar">
+            <button onclick="execCmd('bold')" style="font-weight: bold;">B</button>
+            <button onclick="execCmd('italic')" style="font-style: italic;">I</button>
+            <button onclick="execCmd('insertOrderedList')">1. 2.</button>
+            <button onclick="insertLink()">链接</button>
+            <input type="color" onchange="execCmd('foreColor', this.value)" style="height: 32px; border:none; background:none; cursor:pointer;">
+        </div>
+        <div id="editor-content" class="editor-content" contenteditable="true"></div>
+
+        <label for="excerpt-book-select" style="font-size: 13px; color: var(--text-sub); display:block; margin-bottom:5px;">归属书籍 (仅显示在读):</label>
+        <select id="excerpt-book-select" class="location-input"></select>
+    </div>
+
+</div>
+
+<div id="add-book-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>将新书添加到：</h3>
+        <button onclick="addNewBook('want')" class="secondary">📖 添加想读</button>
+        <button onclick="addNewBook('reading')" class="success">▶ 添加在读</button>
+        <button onclick="addNewBook('read')" class="warning">✓ 添加已读</button>
+        <button class="secondary" style="background: transparent; color: var(--text-muted); border: 1px solid var(--text-muted); margin-top: 15px;" onclick="closeModal('add-book-modal')">取消</button>
+    </div>
+</div>
+
+<div id="draft-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>是否保存为草稿？</h3>
+        <div style="display: flex; gap: 8px; margin-top: 20px;">
+            <button class="secondary" style="flex: 1; padding: 10px 0;" onclick="handleDraft('no')">否</button>
+            <button class="success" style="flex: 1; padding: 10px 0;" onclick="handleDraft('yes')">是</button>
+            <button class="highlight-cancel" style="flex: 1.2; padding: 10px 0;" onclick="handleDraft('cancel')">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'bookApp_v1_6_demo_data';
+    let appData = { books: [], excerpts: [], readSessions: [], draft: null, theme: 'light' };
+    let currentActiveBook = null;
+    let editorSourceView = 'home-view';
+
+    function initData() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            appData = JSON.parse(stored);
+        } else {
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+
+            appData = {
+                books: [
+                    { id: 1, title: "黑洞超辐射与引力原子", status: "reading", spineColor: "#ff6b6b", readTime: 125, progress: 42 },
+                    { id: 2, title: "木材树脂稳定化与CNC加工", status: "reading", spineColor: "#6c5ce7", readTime: 45, progress: 15 },
+                    { id: 3, title: "脉冲星计时阵列(PTA)数据分析基础", status: "want", spineColor: "#4ecdc4", readTime: 0, progress: 0 },
+                    { id: 4, title: "二战太平洋战区战略史", status: "want", spineColor: "#45b7d1", readTime: 0, progress: 0 },
+                    { id: 5, title: "数值计算方法 (NumPy/SciPy)", status: "read", spineColor: "#f9ca24", readTime: 360, progress: 100 },
+                    { id: 6, title: "古典音乐和声学基础", status: "read", spineColor: "#333333", readTime: 980, progress: 100 }
+                ],
+                excerpts: [
+                    { id: 101, bookId: 1, text: "在半经典近似下，轴子凝聚体在超大质量黑洞周围形成的"引力原子"结构，其雅可比稳定性分析揭示了...", location: "第三章 动力学" },
+                    { id: 102, bookId: 2, text: "对于黑胡桃木这类硬木，使用环氧树脂进行真空稳定化处理时，需要特别注意固化放热导致的形变。", location: "P84" }
+                ],
+                readSessions: [
+                    { timestamp: now - 30 * oneDay, duration: 1380 },
+                    { timestamp: now - 5 * oneDay, duration: 60 },
+                    { timestamp: now - 2 * oneDay, duration: 45 },
+                    { timestamp: now - 1000 * 60 * 60, duration: 25 }
+                ],
+                draft: null, theme: 'light'
+            };
+        }
+        if (appData.theme === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-toggle').checked = true;
+        }
+    }
+
+    function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
+
+    function renderHome() {
+        const lists = { 'want': document.getElementById('want-list'), 'reading': document.getElementById('reading-list'), 'read': document.getElementById('read-list') };
+        for (let key in lists) lists[key].innerHTML = '';
+
+        appData.books.forEach(book => {
+            const li = document.createElement('li');
+            li.className = 'book-item';
+            li.style.borderLeftColor = book.spineColor || '#007bff';
+
+            let progressHtml = '';
+            let metaHtml = '';
+
+            if (book.status === 'reading') {
+                progressHtml = `<div class="progress-wrapper"><div class="progress-fill" style="width: ${book.progress || 0}%"></div></div>`;
+                metaHtml = `<div class="book-meta"><span>专注: ${book.readTime || 0}m</span><span>进度: ${book.progress || 0}%</span></div>`;
+            } else if (book.status === 'read') {
+                metaHtml = `<div class="book-meta"><span>总用时: ${book.readTime || 0}m</span><span style="color:var(--accent-color)">已读完 ✓</span></div>`;
+            }
+
+            li.innerHTML = `<div class="book-title">${book.title}</div>${progressHtml}${metaHtml}`;
+            li.onclick = () => openBookDetail(book);
+            if(lists[book.status]) lists[book.status].appendChild(li);
+        });
+
+        const quoteBox = document.getElementById('random-quote');
+        if (appData.excerpts.length > 0) {
+            const ext = appData.excerpts[Math.floor(Math.random() * appData.excerpts.length)];
+            const bk = appData.books.find(b => b.id == ext.bookId);
+            quoteBox.innerHTML = `<div style="font-style: italic; margin-bottom:8px;">"${ext.text}"</div><div style="font-size:12px; text-align:right;">——《${bk ? bk.title : '未知'}》 ${ext.location ? '| ' + ext.location : ''}</div>`;
+        } else {
+            quoteBox.innerHTML = "暂无书摘。";
+        }
+    }
+
+    function openMineView() {
+        document.getElementById('stat-total').textContent = appData.books.length;
+        document.getElementById('stat-reading').textContent = appData.books.filter(b => b.status === 'reading').length;
+        document.getElementById('stat-want').textContent = appData.books.filter(b => b.status === 'want').length;
+        document.getElementById('stat-read').textContent = appData.books.filter(b => b.status === 'read').length;
+
+        const sessions = appData.readSessions || [];
+        const totalMinutes = sessions.reduce((sum, s) => sum + s.duration, 0);
+        const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const weekMinutes = sessions.filter(s => s.timestamp >= oneWeekAgo).reduce((sum, s) => sum + s.duration, 0);
+
+        document.getElementById('stat-total-time').textContent = totalMinutes;
+        document.getElementById('stat-week-time').textContent = weekMinutes;
+
+        switchView('mine-view');
+    }
+
+    function openBookDetail(book) {
+        currentActiveBook = book;
+        document.getElementById('detail-title').textContent = book.title;
+        document.getElementById('detail-status').textContent = { 'want': '状态：想读', 'reading': '状态：在读', 'read': '状态：已读' }[book.status];
+
+        const actions = document.getElementById('detail-actions');
+        actions.innerHTML = '';
+        if (book.status === 'want') {
+            actions.appendChild(createBtn('开始阅读', 'success', () => changeBookStatus('reading')));
+        } else if (book.status === 'reading') {
+            actions.appendChild(createBtn('▶ 更新番茄钟 (演示)', 'success', () => alert('演示版本：番茄钟入口')));
+            actions.appendChild(createBtn('📝 新建书摘/书评', 'warning', () => openDetailEditor('新建书摘')));
+            actions.appendChild(createBtn('✓ 标记已读', 'secondary', () => changeBookStatus('read')));
+        } else if (book.status === 'read') {
+            actions.appendChild(createBtn('重新阅读', 'secondary', () => changeBookStatus('reading')));
+        }
+        switchView('detail-view');
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function addNewBook(targetStatus) {
+        closeModal('add-book-modal');
+        const title = prompt("请输入书名:");
+        if (title && title.trim() !== "") {
+            appData.books.push({ id: Date.now(), title: title.trim(), status: targetStatus, spineColor: "#" + Math.floor(Math.random()*16777215).toString(16), readTime: 0, progress: 0 });
+            saveData(); renderHome();
+        }
+    }
+
+    function openGlobalEditor() {
+        const readingBooks = appData.books.filter(b => b.status === 'reading');
+        if (readingBooks.length === 0) { alert("目前没有在读的书籍！"); return; }
+        editorSourceView = 'home-view'; initEditor("新建书摘/书评", readingBooks, null);
+    }
+
+    function openDetailEditor(title) { editorSourceView = 'detail-view'; initEditor(title, [currentActiveBook], currentActiveBook.id); }
+
+    function initEditor(title, bookOptions, defaultSelectedId) {
+        document.getElementById('editor-title').textContent = title;
+        const selectBox = document.getElementById('excerpt-book-select'); selectBox.innerHTML = '';
+        bookOptions.forEach(b => { const opt = document.createElement('option'); opt.value = b.id; opt.textContent = b.title; selectBox.appendChild(opt); });
+
+        const editorNode = document.getElementById('editor-content'); const locNode = document.getElementById('excerpt-location');
+
+        if (appData.draft && appData.draft.text) {
+            editorNode.innerHTML = appData.draft.text; locNode.value = appData.draft.location || '';
+            if (appData.draft.bookId && Array.from(selectBox.options).some(o => o.value == appData.draft.bookId)) selectBox.value = appData.draft.bookId;
+        } else { editorNode.innerHTML = ''; locNode.value = ''; if (defaultSelectedId) selectBox.value = defaultSelectedId; }
+        switchView('editor-view');
+    }
+
+    function attemptCloseEditor() {
+        const currentContent = document.getElementById('editor-content').innerHTML.trim();
+        if (currentContent !== '' && currentContent !== '<br>') openModal('draft-modal'); else switchView(editorSourceView);
+    }
+
+    function handleDraft(action) {
+        closeModal('draft-modal');
+        if (action === 'cancel') return;
+        if (action === 'yes') appData.draft = { text: document.getElementById('editor-content').innerHTML, location: document.getElementById('excerpt-location').value, bookId: document.getElementById('excerpt-book-select').value };
+        else if (action === 'no') appData.draft = null;
+        saveData(); switchView(editorSourceView);
+    }
+
+    function saveExcerpt() {
+        let plainText = document.getElementById('editor-content').textContent.trim();
+        const loc = document.getElementById('excerpt-location').value; const bookId = parseInt(document.getElementById('excerpt-book-select').value);
+        if(plainText === '') { alert('内容不能为空！'); return; }
+        appData.excerpts.push({ id: Date.now(), bookId: bookId, text: plainText, location: loc.trim() }); appData.draft = null; saveData(); alert('保存成功！'); switchView(editorSourceView);
+    }
+
+    function execCmd(command, value = null) { document.execCommand(command, false, value); document.getElementById('editor-content').focus(); }
+    function insertLink() { const url = prompt('请输入链接:', 'https://'); if (url) execCmd('createLink', url); }
+
+    function switchView(viewId) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); if(viewId === 'home-view') renderHome(); }
+    function changeBookStatus(newStatus) { appData.books.find(b => b.id === currentActiveBook.id).status = newStatus; saveData(); switchView('home-view'); }
+    function toggleTheme() {
+        appData.theme = document.getElementById('theme-toggle').checked ? 'dark' : 'light';
+        if(appData.theme === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+        saveData();
+    }
+    function createBtn(text, style, onClick) { const b = document.createElement('button'); b.textContent = text; b.className = style; b.onclick = onClick; return b; }
+
+    window.onload = () => { initData(); renderHome(); };
+</script>
+
+</body>
+</html>
