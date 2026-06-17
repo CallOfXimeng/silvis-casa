@@ -6,82 +6,126 @@ layout: null
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>书摘与番茄钟 App v1.6 Demo</title>
+    <title>书摘与番茄钟</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#eef2f5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
     <style>
-        /* --- CSS 变量 --- */
         :root {
-            --bg-color: #eef2f5; --container-bg: #ffffff; --text-main: #333333;
-            --text-sub: #555555; --text-muted: #888888; --border-color: #eeeeee;
-            --card-bg: #fcfcfc; --shelf-color: #d2b48c; --quote-bg: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-            --header-border: #333333; --btn-nav-bg: #333333; --accent-color: #007bff;
-            --overlay-bg: rgba(0, 0, 0, 0.5);
+            --bg: #eef2f5; --card: #ffffff; --text: #333; --sub: #555; --muted: #888;
+            --border: #eee; --shelf: #d2b48c; --accent: #007bff; --overlay: rgba(0,0,0,0.5);
+            --danger: #dc3545; --success: #28a745; --warn: #ffc107; --secondary: #6c757d;
         }
         body.dark-mode {
-            --bg-color: #121212; --container-bg: #1e1e1e; --text-main: #e0e0e0;
-            --text-sub: #b0b0b0; --text-muted: #666666; --border-color: #333333;
-            --card-bg: #2d2d2d; --shelf-color: #5c4d3c; --quote-bg: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
-            --header-border: #e0e0e0; --btn-nav-bg: #555555; --accent-color: #4da3ff;
-            --overlay-bg: rgba(0, 0, 0, 0.7);
+            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --sub: #b0b0b0; --muted: #666;
+            --border: #333; --shelf: #5c4d3c; --accent: #4da3ff; --overlay: rgba(0,0,0,0.75);
         }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; transition: background .3s, color .3s; }
+        #app { width: 100%; max-width: 420px; background: var(--card); min-height: 100vh; min-height: 100dvh; box-shadow: 0 0 20px rgba(0,0,0,0.08); position: relative; padding-bottom: 24px; transition: background .3s; overflow-x: hidden; padding-top: env(safe-area-inset-top); }
+        .view { display: none; padding: 18px; }
+        .view.active { display: block; animation: fadeIn .2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- 基础布局 --- */
-        body { font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; display: flex; justify-content: center; transition: 0.3s; }
-        #app-container { width: 100%; max-width: 400px; background-color: var(--container-bg); min-height: 100vh; box-shadow: 0 0 15px rgba(0,0,0,0.1); position: relative; padding-bottom: 20px; transition: 0.3s; overflow-x: hidden; padding-top: env(safe-area-inset-top); }
-        .view { display: none; padding: 20px; }
-        .view.active { display: block; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--text); padding-bottom: 10px; margin-bottom: 16px; }
+        .header h2 { margin: 0; font-size: 18px; }
+        .header-actions { display: flex; gap: 6px; }
+        .nav-btn { margin: 0; padding: 6px 14px; background: var(--text); color: var(--card); border-radius: 20px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+        .back-btn { width: auto; margin: 0; padding: 8px 14px; font-size: 14px; }
 
-        /* --- 头部 --- */
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--header-border); padding-bottom: 10px; margin-bottom: 20px; }
-        .header h2 { border: none; margin: 0; padding: 0; }
-        .header-actions { display: flex; gap: 8px; }
-        .nav-btn { width: auto; margin: 0; padding: 6px 12px; background-color: var(--btn-nav-bg); color: white; border-radius: 20px; border: none; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .shelf-title { color: var(--sub); margin: 0 0 4px 0; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+        .book-list { list-style: none; padding: 12px; margin: 0 0 20px 0; background: var(--bg); border-bottom: 10px solid var(--shelf); border-radius: 4px; display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
+        .book-list.empty::after { content: '暂无书籍'; color: var(--muted); font-size: 13px; text-align: center; padding: 10px 0; display: block; }
+        .book-item { background: var(--card); padding: 10px 14px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-left: 5px solid; position: relative; transition: transform .15s; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+        .book-item:active { transform: scale(0.98); }
+        .book-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+        .progress-wrapper { width: 100%; height: 5px; background: var(--border); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .5s; }
+        .book-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-        /* --- 书架与书籍 --- */
-        .shelf-title { color: var(--text-sub); margin: 0 0 5px 0; font-size: 14px; letter-spacing: 1px; }
-        .book-list { list-style: none; padding: 15px; margin: 0 0 25px 0; background-color: var(--card-bg); border-bottom: 12px solid var(--shelf-color); border-radius: 4px; display: flex; flex-direction: column; gap: 10px; }
-        .book-item { background-color: var(--container-bg); padding: 12px 15px; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-left: 6px solid; position: relative; }
-        .book-title { font-size: 15px; font-weight: bold; margin-bottom: 5px; }
+        .quote-box { background: var(--bg); border-left: 4px solid var(--secondary); padding: 12px 14px; margin-top: 8px; border-radius: 6px; color: var(--sub); font-size: 14px; line-height: 1.6; }
 
-        .progress-wrapper { width: 100%; height: 6px; background-color: var(--border-color); border-radius: 3px; margin-top: 5px; overflow: hidden; }
-        .progress-fill { height: 100%; background-color: var(--accent-color); border-radius: 3px; transition: width 0.5s ease-in-out; }
-        .book-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 5px; }
-
-        .quote-box { background: var(--quote-bg); border-left: 4px solid #6c757d; padding: 15px; margin-top: 10px; border-radius: 6px; color: var(--text-sub); font-size: 14px; line-height: 1.6; }
-
-        /* --- 个人中心仪表盘 --- */
-        .stats-grid { display: grid; gap: 10px; margin-bottom: 20px; }
+        .stats-grid { display: grid; gap: 10px; margin-bottom: 16px; }
         .grid-4 { grid-template-columns: repeat(4, 1fr); }
         .grid-2 { grid-template-columns: repeat(2, 1fr); }
-        .stat-box { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px 5px; text-align: center; }
-        .stat-num { font-size: 20px; font-weight: bold; color: var(--accent-color); margin-bottom: 5px; }
-        .stat-num small { font-size: 12px; font-weight: normal; color: var(--text-muted); margin-left: 2px; }
-        .stat-label { font-size: 11px; color: var(--text-sub); }
+        .stat-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 4px; text-align: center; }
+        .stat-num { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+        .stat-num small { font-size: 11px; font-weight: 400; color: var(--muted); }
+        .stat-label { font-size: 11px; color: var(--sub); }
 
-        .menu-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border-color); }
-        .menu-list li { padding: 16px 5px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .menu-list { list-style: none; padding: 0; margin: 16px 0 0 0; border-top: 1px solid var(--border); }
+        .menu-list li { padding: 15px 4px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 15px; cursor: pointer; }
 
-        /* --- 弹窗与表单 --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay-bg); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: var(--container-bg); padding: 20px; border-radius: 10px; width: 85%; max-width: 320px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .modal-content h3 { margin-top: 0; margin-bottom: 15px; color: var(--text-main); font-size: 16px; text-align: center; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: var(--card); padding: 22px; border-radius: 12px; width: 88%; max-width: 330px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin: 0 0 14px 0; font-size: 16px; text-align: center; }
+        .modal-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 14px; }
 
-        button { padding: 12px 15px; border: none; border-radius: 6px; background-color: var(--accent-color); color: white; cursor: pointer; font-size: 15px; margin: 5px 0; width: 100%; font-weight: 500; }
-        button.secondary { background-color: #6c757d; }
-        button.success { background-color: #28a745; }
-        button.warning { background-color: #ffc107; color: black; }
-        button.highlight-cancel { background-color: var(--accent-color); box-shadow: 0 0 10px rgba(0,123,255,0.6); font-weight: bold; border: 2px solid #fff; }
-        body.dark-mode button.highlight-cancel { border: 2px solid #000; }
+        button { padding: 11px 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 4px 0; width: 100%; font-weight: 500; transition: opacity .15s; }
+        button:active { opacity: 0.8; }
+        button.accent { background: var(--accent); color: #fff; }
+        button.secondary { background: var(--secondary); color: #fff; }
+        button.success { background: var(--success); color: #fff; }
+        button.warn { background: var(--warn); color: #000; }
+        button.danger { background: var(--danger); color: #fff; }
+        button.outline { background: transparent; color: var(--muted); border: 1px solid var(--muted); }
+        button.small { width: auto; padding: 6px 12px; font-size: 13px; margin: 0; }
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row button { flex: 1; }
 
-        .location-input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--container-bg); color: var(--text-main); font-size: 14px; }
-        .editor-toolbar { display: flex; gap: 5px; padding: 10px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-bottom: none; border-radius: 6px 6px 0 0; flex-wrap: wrap; }
-        .editor-toolbar button { width: auto; padding: 6px 10px; margin: 0; background-color: var(--border-color); color: var(--text-main); font-size: 14px; }
-        .editor-content { min-height: 160px; padding: 15px; border: 1px solid var(--border-color); border-radius: 0 0 6px 6px; background-color: var(--container-bg); outline: none; line-height: 1.6; margin-bottom: 15px; }
+        .editable { border: 1px dashed transparent; padding: 2px 6px; border-radius: 4px; cursor: text; display: inline-block; }
+        .editable:focus { border-color: var(--accent); outline: none; background: var(--bg); }
+
+        /* Pomodoro */
+        .pomodoro-container { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+        .pomodoro-ring-wrap { position: relative; width: 240px; height: 240px; }
+        .pomodoro-ring-wrap svg { transform: rotate(-90deg); }
+        .pomodoro-ring-wrap .bg-circle { fill: none; stroke: var(--border); stroke-width: 8; }
+        .pomodoro-ring-wrap .progress-circle { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .3s linear; }
+        .pomodoro-ring-wrap.break .progress-circle { stroke: var(--success); }
+        .pomodoro-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 42px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .pomodoro-label { font-size: 14px; color: var(--sub); margin-top: 8px; font-weight: 600; }
+        .pomodoro-controls { display: flex; gap: 10px; margin-top: 24px; }
+        .pomodoro-controls button { width: auto; min-width: 90px; font-size: 15px; }
+        .pomodoro-settings { display: flex; gap: 16px; margin-top: 18px; font-size: 13px; color: var(--sub); align-items: center; }
+        .pomodoro-settings input { width: 52px; padding: 5px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); text-align: center; font-size: 13px; }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { background: var(--text); color: var(--card); padding: 10px 22px; border-radius: 20px; font-size: 14px; animation: toastIn .3s ease, toastOut .3s ease 2.2s forwards; pointer-events: auto; max-width: 320px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* Context menu */
+        .context-menu { position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.15); z-index: 1500; min-width: 140px; overflow: hidden; display: none; }
+        .context-menu button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 12px 16px; font-size: 14px; color: var(--text); cursor: pointer; border-radius: 0; margin: 0; }
+        .context-menu button:active { background: var(--bg); }
+        .context-menu button.danger { color: var(--danger); }
+
+        .excerpt-list { list-style: none; padding: 0; margin: 12px 0; }
+        .excerpt-list li { background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 8px; font-size: 14px; line-height: 1.6; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .excerpt-list .excerpt-body { flex: 1; cursor: pointer; }
+        .excerpt-list .excerpt-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .excerpt-list .del-excerpt { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; padding: 0 6px; width: auto; margin: 0; line-height: 1; }
+        .excerpt-list .del-excerpt:active { color: var(--danger); }
+
+        .section-title { font-size: 13px; font-weight: 600; color: var(--sub); margin: 16px 0 8px 0; }
+        .empty-hint { color: var(--muted); font-size: 13px; text-align: center; padding: 16px 0; }
+
+        @media (max-width: 420px) {
+            .view { padding: 14px; }
+            .pomodoro-ring-wrap { width: 200px; height: 200px; }
+            .pomodoro-time { font-size: 36px; }
+        }
     </style>
 </head>
 <body>
 
-<div id="app-container">
-
+<div id="app">
+    <!-- HOME -->
     <div id="home-view" class="view active">
         <div class="header">
             <h2>我的书架</h2>
@@ -91,279 +135,714 @@ layout: null
                 <button class="nav-btn" onclick="openMineView()">我的</button>
             </div>
         </div>
-
         <div class="shelf-title">在读</div>
         <ul id="reading-list" class="book-list"></ul>
         <div class="shelf-title">想读</div>
         <ul id="want-list" class="book-list"></ul>
         <div class="shelf-title">已读</div>
         <ul id="read-list" class="book-list"></ul>
-
-        <div style="font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 5px;">近期书摘回顾</div>
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">随机书摘</div>
         <div id="random-quote" class="quote-box"></div>
     </div>
 
+    <!-- DETAIL -->
     <div id="detail-view" class="view">
-        <div class="header" style="margin-bottom: 10px;">
-            <button class="secondary" onclick="switchView('home-view')" style="width: auto; margin: 0;">← 返回</button>
-            <h2 style="margin-left: 15px; flex-grow: 1;">书籍详情</h2>
+        <div class="header" style="margin-bottom:10px;">
+            <button class="secondary back-btn" onclick="switchView('home-view')">← 返回</button>
+            <h2 style="margin-left:12px;flex:1;">书籍详情</h2>
+            <button class="nav-btn" style="background:var(--danger);" onclick="deleteBookConfirm()">删除</button>
         </div>
-        <h2 id="detail-title" style="margin-top: 20px; border:none;">书名</h2>
-        <p id="detail-status" style="color: var(--text-muted); margin-top:0;"></p>
-        <div id="detail-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;"></div>
+        <h2 id="detail-title" class="editable" contenteditable="true" style="margin-top:12px;font-size:20px;" onblur="renameBook(this.textContent.trim())">书名</h2>
+        <p id="detail-status" style="color:var(--muted);margin-top:0;"></p>
+
+        <div class="section-title">阅读进度</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <input type="range" id="progress-slider" min="0" max="100" value="0" style="flex:1;accent-color:var(--accent);" oninput="document.getElementById('progress-val').textContent=this.value+'%'">
+            <span id="progress-val" style="font-size:14px;font-weight:600;min-width:42px;">0%</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+            <button class="secondary small" onclick="quickProgress(25)">25%</button>
+            <button class="secondary small" onclick="quickProgress(50)">50%</button>
+            <button class="secondary small" onclick="quickProgress(75)">75%</button>
+            <button class="secondary small" onclick="quickProgress(100)">100%</button>
+        </div>
+
+        <div id="detail-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:16px;"></div>
+
+        <div class="section-title">书摘与笔记</div>
+        <ul id="detail-excerpts" class="excerpt-list"></ul>
     </div>
 
+    <!-- POMODORO -->
+    <div id="pomodoro-view" class="view">
+        <div class="header">
+            <button class="secondary back-btn" onclick="exitPomodoro()">← 返回</button>
+            <h2 style="margin-left:12px;flex:1;">番茄钟</h2>
+            <span id="pomodoro-book-name" style="font-size:13px;color:var(--sub);"></span>
+        </div>
+        <div class="pomodoro-container">
+            <div class="pomodoro-ring-wrap" id="pomodoro-ring">
+                <svg width="100%" height="100%" viewBox="0 0 200 200">
+                    <circle class="bg-circle" cx="100" cy="100" r="90"/>
+                    <circle class="progress-circle" id="pomodoro-progress" cx="100" cy="100" r="90"
+                            stroke-dasharray="565.48" stroke-dashoffset="0"/>
+                </svg>
+                <div class="pomodoro-time" id="pomodoro-display">25:00</div>
+            </div>
+            <div class="pomodoro-label" id="pomodoro-phase-label">专注</div>
+            <div class="pomodoro-controls">
+                <button class="accent" id="pomodoro-start-btn" onclick="togglePomodoro()">开始</button>
+                <button class="secondary" onclick="resetPomodoro()">重置</button>
+            </div>
+            <div class="pomodoro-settings">
+                <label>专注 <input type="number" id="focus-minutes" value="25" min="1" max="120" onchange="resetPomodoro()"> 分钟</label>
+                <label>休息 <input type="number" id="break-minutes" value="5" min="1" max="30" onchange="resetPomodoro()"> 分钟</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINE -->
     <div id="mine-view" class="view">
         <div class="header">
-            <button class="secondary" onclick="switchView('home-view')" style="width: auto; margin: 0;">← 返回</button>
-            <h2 style="margin-left: 15px; flex-grow: 1;">个人中心</h2>
+            <button class="secondary back-btn" onclick="switchView('home-view')">← 返回</button>
+            <h2 style="margin-left:12px;flex:1;">个人中心</h2>
         </div>
-
-        <h3 style="margin-top:0; font-size: 15px; color: var(--text-sub);">书籍概览</h3>
+        <h3 style="margin-top:0;font-size:14px;color:var(--sub);">书籍概览</h3>
         <div class="stats-grid grid-4">
             <div class="stat-box"><div class="stat-num" id="stat-reading">0</div><div class="stat-label">在读</div></div>
             <div class="stat-box"><div class="stat-num" id="stat-want">0</div><div class="stat-label">想读</div></div>
             <div class="stat-box"><div class="stat-num" id="stat-read">0</div><div class="stat-label">已读</div></div>
             <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">总数</div></div>
         </div>
-
-        <h3 style="margin-top:20px; font-size: 15px; color: var(--text-sub);">专注阅读</h3>
+        <h3 style="font-size:14px;color:var(--sub);">专注阅读</h3>
         <div class="stats-grid grid-2">
             <div class="stat-box"><div class="stat-num"><span id="stat-week-time">0</span><small>分钟</small></div><div class="stat-label">最近一周</div></div>
             <div class="stat-box"><div class="stat-num"><span id="stat-total-time">0</span><small>分钟</small></div><div class="stat-label">历史总时长</div></div>
         </div>
-
-        <ul class="menu-list" style="margin-top: 20px;">
-            <li>深色模式 <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" style="transform: scale(1.5);"></li>
+        <ul class="menu-list">
+            <li onclick="exportData()">📤 导出数据 <span style="color:var(--muted);font-size:13px;">JSON</span></li>
+            <li onclick="document.getElementById('import-file').click()">📥 导入数据 <span style="color:var(--muted);font-size:13px;">JSON</span></li>
+            <li onclick="confirmClearData()" style="color:var(--danger);">🗑 清空所有数据</li>
         </ul>
+        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+        <div style="margin-top:20px;">
+            <label style="display:flex;justify-content:space-between;align-items:center;padding:15px 4px;border-bottom:1px solid var(--border);font-size:15px;">
+                深色模式
+                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" style="transform:scale(1.4);">
+            </label>
+        </div>
     </div>
 
+    <!-- EDITOR -->
     <div id="editor-view" class="view">
         <div class="header">
-            <button class="secondary" onclick="attemptCloseEditor()" style="width: auto; margin: 0;">← 取消</button>
-            <h2 id="editor-title" style="margin-left: 15px; flex-grow: 1; font-size: 18px;">新建内容</h2>
-            <button class="nav-btn" onclick="saveExcerpt()" style="background-color: #28a745;">保存</button>
+            <button class="secondary back-btn" onclick="attemptCloseEditor()">← 取消</button>
+            <h2 id="editor-title" style="margin-left:12px;flex:1;font-size:17px;">新建内容</h2>
+            <button class="nav-btn" onclick="saveExcerpt()" style="background:var(--success);">保存</button>
         </div>
-
-        <input type="text" id="excerpt-location" class="location-input" placeholder="输入位置：如 P42 或 45%">
-        <div class="editor-toolbar">
-            <button onclick="execCmd('bold')" style="font-weight: bold;">B</button>
-            <button onclick="execCmd('italic')" style="font-style: italic;">I</button>
-            <button onclick="execCmd('insertOrderedList')">1. 2.</button>
-            <button onclick="insertLink()">链接</button>
-            <input type="color" onchange="execCmd('foreColor', this.value)" style="height: 32px; border:none; background:none; cursor:pointer;">
+        <input type="text" id="excerpt-location" class="modal-input" placeholder="位置：如 P42 或 45%">
+        <div class="editor-toolbar" style="display:flex;gap:4px;padding:8px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;flex-wrap:wrap;">
+            <button onclick="execCmd('bold')" style="font-weight:bold;width:auto;padding:6px 10px;margin:0;font-size:13px;background:var(--border);color:var(--text);">B</button>
+            <button onclick="execCmd('italic')" style="font-style:italic;width:auto;padding:6px 10px;margin:0;font-size:13px;background:var(--border);color:var(--text);">I</button>
+            <button onclick="execCmd('insertOrderedList')" style="width:auto;padding:6px 10px;margin:0;font-size:13px;background:var(--border);color:var(--text);">1.</button>
+            <button onclick="insertLink()" style="width:auto;padding:6px 10px;margin:0;font-size:13px;background:var(--border);color:var(--text);">🔗</button>
+            <input type="color" onchange="execCmd('foreColor',this.value)" style="height:30px;border:none;background:none;cursor:pointer;width:auto;margin:0;">
         </div>
-        <div id="editor-content" class="editor-content" contenteditable="true"></div>
-
-        <label for="excerpt-book-select" style="font-size: 13px; color: var(--text-sub); display:block; margin-bottom:5px;">归属书籍 (仅显示在读):</label>
-        <select id="excerpt-book-select" class="location-input"></select>
+        <div id="editor-content" class="editor-content" contenteditable="true" style="min-height:140px;padding:14px;border:1px solid var(--border);border-radius:0 0 8px 8px;background:var(--card);outline:none;line-height:1.6;margin-bottom:12px;"></div>
+        <label style="font-size:13px;color:var(--sub);display:block;margin-bottom:4px;">归属书籍 (在读):</label>
+        <select id="excerpt-book-select" class="modal-input"></select>
     </div>
-
 </div>
 
+<!-- Context menu -->
+<div class="context-menu" id="context-menu"></div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Add book modal -->
 <div id="add-book-modal" class="modal-overlay">
     <div class="modal-content">
         <h3>将新书添加到：</h3>
         <button onclick="addNewBook('want')" class="secondary">📖 添加想读</button>
         <button onclick="addNewBook('reading')" class="success">▶ 添加在读</button>
-        <button onclick="addNewBook('read')" class="warning">✓ 添加已读</button>
-        <button class="secondary" style="background: transparent; color: var(--text-muted); border: 1px solid var(--text-muted); margin-top: 15px;" onclick="closeModal('add-book-modal')">取消</button>
+        <button onclick="addNewBook('read')" class="warn">✓ 添加已读</button>
+        <button class="outline" style="margin-top:12px;" onclick="closeModal('add-book-modal')">取消</button>
     </div>
 </div>
 
+<!-- Draft modal -->
 <div id="draft-modal" class="modal-overlay">
     <div class="modal-content">
-        <h3>是否保存为草稿？</h3>
-        <div style="display: flex; gap: 8px; margin-top: 20px;">
-            <button class="secondary" style="flex: 1; padding: 10px 0;" onclick="handleDraft('no')">否</button>
-            <button class="success" style="flex: 1; padding: 10px 0;" onclick="handleDraft('yes')">是</button>
-            <button class="highlight-cancel" style="flex: 1.2; padding: 10px 0;" onclick="handleDraft('cancel')">取消</button>
+        <h3>保存草稿？</h3>
+        <div class="btn-row">
+            <button class="secondary" onclick="handleDraft('no')">否</button>
+            <button class="success" onclick="handleDraft('yes')">是</button>
+        </div>
+        <button class="outline" style="margin-top:8px;" onclick="handleDraft('cancel')">取消</button>
+    </div>
+</div>
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 id="confirm-msg">确认？</h3>
+        <div class="btn-row">
+            <button class="secondary" onclick="closeModal('confirm-modal');window._cfm=null;">取消</button>
+            <button class="danger" onclick="if(window._cfm){var f=window._cfm;window._cfm=null;f();}closeModal('confirm-modal');">确认</button>
         </div>
     </div>
 </div>
 
+<!-- Excerpt view modal -->
+<div id="excerpt-view-modal" class="modal-overlay" onclick="closeModal('excerpt-view-modal')">
+    <div class="modal-content" style="max-width:380px;" onclick="event.stopPropagation()">
+        <h3>书摘详情</h3>
+        <div id="excerpt-view-text" style="line-height:1.7;margin-bottom:8px;"></div>
+        <div id="excerpt-view-meta" style="font-size:12px;color:var(--muted);"></div>
+        <button class="secondary" style="margin-top:12px;" onclick="closeModal('excerpt-view-modal')">关闭</button>
+    </div>
+</div>
+
 <script>
-    const STORAGE_KEY = 'bookApp_v1_6_demo_data';
-    let appData = { books: [], excerpts: [], readSessions: [], draft: null, theme: 'light' };
-    let currentActiveBook = null;
-    let editorSourceView = 'home-view';
+const STORAGE_KEY = 'bookApp_v1_7_data';
+const CIRC = 2 * Math.PI * 90; // ~565.48
 
-    function initData() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            appData = JSON.parse(stored);
-        } else {
-            const now = Date.now();
-            const oneDay = 24 * 60 * 60 * 1000;
+let appData = { books: [], excerpts: [], readSessions: [], draft: null, theme: 'light' };
+let currentActiveBook = null;
+let editorSourceView = 'home-view';
+let pomodoroInterval = null;
+let pomodoroSeconds = 0;
+let pomodoroTotal = 0;
+let pomodoroRunning = false;
+let pomodoroIsBreak = false;
 
-            appData = {
-                books: [
-                    { id: 1, title: "黑洞超辐射与引力原子", status: "reading", spineColor: "#ff6b6b", readTime: 125, progress: 42 },
-                    { id: 2, title: "木材树脂稳定化与CNC加工", status: "reading", spineColor: "#6c5ce7", readTime: 45, progress: 15 },
-                    { id: 3, title: "脉冲星计时阵列(PTA)数据分析基础", status: "want", spineColor: "#4ecdc4", readTime: 0, progress: 0 },
-                    { id: 4, title: "二战太平洋战区战略史", status: "want", spineColor: "#45b7d1", readTime: 0, progress: 0 },
-                    { id: 5, title: "数值计算方法 (NumPy/SciPy)", status: "read", spineColor: "#f9ca24", readTime: 360, progress: 100 },
-                    { id: 6, title: "古典音乐和声学基础", status: "read", spineColor: "#333333", readTime: 980, progress: 100 }
-                ],
-                excerpts: [
-                    { id: 101, bookId: 1, text: "在半经典近似下，轴子凝聚体在超大质量黑洞周围形成的"引力原子"结构，其雅可比稳定性分析揭示了...", location: "第三章 动力学" },
-                    { id: 102, bookId: 2, text: "对于黑胡桃木这类硬木，使用环氧树脂进行真空稳定化处理时，需要特别注意固化放热导致的形变。", location: "P84" }
-                ],
-                readSessions: [
-                    { timestamp: now - 30 * oneDay, duration: 1380 },
-                    { timestamp: now - 5 * oneDay, duration: 60 },
-                    { timestamp: now - 2 * oneDay, duration: 45 },
-                    { timestamp: now - 1000 * 60 * 60, duration: 25 }
-                ],
-                draft: null, theme: 'light'
-            };
-        }
-        if (appData.theme === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('theme-toggle').checked = true;
-        }
+function initData() {
+    var stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+        appData = JSON.parse(stored);
+    } else {
+        var now = Date.now(), day = 86400000;
+        appData = {
+            books: [
+                { id: 1, title: '杀死一只知更鸟', status: 'reading', spineColor: '#ff6b6b', readTime: 125, progress: 42 },
+                { id: 2, title: '人类简史：从动物到上帝', status: 'reading', spineColor: '#6c5ce7', readTime: 45, progress: 15 },
+                { id: 3, title: '了不起的盖茨比', status: 'want', spineColor: '#4ecdc4', readTime: 0, progress: 0 },
+                { id: 4, title: '百年孤独', status: 'want', spineColor: '#45b7d1', readTime: 0, progress: 0 },
+                { id: 5, title: '月亮与六便士', status: 'read', spineColor: '#f9ca24', readTime: 360, progress: 100 },
+                { id: 6, title: '三体 (全集)', status: 'read', spineColor: '#333333', readTime: 980, progress: 100 }
+            ],
+            excerpts: [
+                { id: 101, bookId: 1, text: '你永远也不可能真正了解一个人，除非你穿上他的鞋子走来走去，站在他的角度考虑问题。', location: 'P38' },
+                { id: 102, bookId: 2, text: '身为人类，我们不可能脱离想象所建构出的秩序。每一次我们以为自己打破了监狱的高墙、迈向自由的前方，其实只是到了另一间更大的监狱，把活动范围稍稍加以扩大而已。', location: '第6章' }
+            ],
+            readSessions: [
+                { timestamp: now - 30*day, duration: 1380 },
+                { timestamp: now - 5*day, duration: 60 },
+                { timestamp: now - 2*day, duration: 45 },
+                { timestamp: now - 3600000, duration: 25 }
+            ],
+            draft: null, theme: 'light'
+        };
     }
-
-    function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
-
-    function renderHome() {
-        const lists = { 'want': document.getElementById('want-list'), 'reading': document.getElementById('reading-list'), 'read': document.getElementById('read-list') };
-        for (let key in lists) lists[key].innerHTML = '';
-
-        appData.books.forEach(book => {
-            const li = document.createElement('li');
-            li.className = 'book-item';
-            li.style.borderLeftColor = book.spineColor || '#007bff';
-
-            let progressHtml = '';
-            let metaHtml = '';
-
-            if (book.status === 'reading') {
-                progressHtml = `<div class="progress-wrapper"><div class="progress-fill" style="width: ${book.progress || 0}%"></div></div>`;
-                metaHtml = `<div class="book-meta"><span>专注: ${book.readTime || 0}m</span><span>进度: ${book.progress || 0}%</span></div>`;
-            } else if (book.status === 'read') {
-                metaHtml = `<div class="book-meta"><span>总用时: ${book.readTime || 0}m</span><span style="color:var(--accent-color)">已读完 ✓</span></div>`;
-            }
-
-            li.innerHTML = `<div class="book-title">${book.title}</div>${progressHtml}${metaHtml}`;
-            li.onclick = () => openBookDetail(book);
-            if(lists[book.status]) lists[book.status].appendChild(li);
-        });
-
-        const quoteBox = document.getElementById('random-quote');
-        if (appData.excerpts.length > 0) {
-            const ext = appData.excerpts[Math.floor(Math.random() * appData.excerpts.length)];
-            const bk = appData.books.find(b => b.id == ext.bookId);
-            quoteBox.innerHTML = `<div style="font-style: italic; margin-bottom:8px;">"${ext.text}"</div><div style="font-size:12px; text-align:right;">——《${bk ? bk.title : '未知'}》 ${ext.location ? '| ' + ext.location : ''}</div>`;
-        } else {
-            quoteBox.innerHTML = "暂无书摘。";
-        }
+    if (appData.theme === 'dark') {
+        document.body.classList.add('dark-mode');
+        var t = document.getElementById('theme-toggle'); if (t) t.checked = true;
     }
+}
 
-    function openMineView() {
-        document.getElementById('stat-total').textContent = appData.books.length;
-        document.getElementById('stat-reading').textContent = appData.books.filter(b => b.status === 'reading').length;
-        document.getElementById('stat-want').textContent = appData.books.filter(b => b.status === 'want').length;
-        document.getElementById('stat-read').textContent = appData.books.filter(b => b.status === 'read').length;
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
 
-        const sessions = appData.readSessions || [];
-        const totalMinutes = sessions.reduce((sum, s) => sum + s.duration, 0);
-        const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-        const weekMinutes = sessions.filter(s => s.timestamp >= oneWeekAgo).reduce((sum, s) => sum + s.duration, 0);
+function toast(msg) {
+    var c = document.getElementById('toast-container');
+    var el = document.createElement('div');
+    el.className = 'toast'; el.textContent = msg; c.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 2600);
+}
 
-        document.getElementById('stat-total-time').textContent = totalMinutes;
-        document.getElementById('stat-week-time').textContent = weekMinutes;
+function confirmDialog(msg, cb) {
+    document.getElementById('confirm-msg').textContent = msg;
+    window._cfm = cb;
+    openModal('confirm-modal');
+}
 
-        switchView('mine-view');
-    }
+function renderHome() {
+    var lists = { want: document.getElementById('want-list'), reading: document.getElementById('reading-list'), read: document.getElementById('read-list') };
+    for (var k in lists) lists[k].innerHTML = '';
 
-    function openBookDetail(book) {
-        currentActiveBook = book;
-        document.getElementById('detail-title').textContent = book.title;
-        document.getElementById('detail-status').textContent = { 'want': '状态：想读', 'reading': '状态：在读', 'read': '状态：已读' }[book.status];
+    appData.books.forEach(function(book) {
+        var li = document.createElement('li');
+        li.className = 'book-item';
+        li.style.borderLeftColor = book.spineColor || '#007bff';
 
-        const actions = document.getElementById('detail-actions');
-        actions.innerHTML = '';
-        if (book.status === 'want') {
-            actions.appendChild(createBtn('开始阅读', 'success', () => changeBookStatus('reading')));
-        } else if (book.status === 'reading') {
-            actions.appendChild(createBtn('▶ 更新番茄钟 (演示)', 'success', () => alert('演示版本：番茄钟入口')));
-            actions.appendChild(createBtn('📝 新建书摘/书评', 'warning', () => openDetailEditor('新建书摘')));
-            actions.appendChild(createBtn('✓ 标记已读', 'secondary', () => changeBookStatus('read')));
+        var progressHtml = '', metaHtml = '';
+        if (book.status === 'reading') {
+            progressHtml = '<div class="progress-wrapper"><div class="progress-fill" style="width:'+(book.progress||0)+'%"></div></div>';
+            metaHtml = '<div class="book-meta"><span>专注: '+(book.readTime||0)+'m</span><span>'+(book.progress||0)+'%</span></div>';
         } else if (book.status === 'read') {
-            actions.appendChild(createBtn('重新阅读', 'secondary', () => changeBookStatus('reading')));
+            metaHtml = '<div class="book-meta"><span>总用时: '+(book.readTime||0)+'m</span><span style="color:var(--accent);">已读完 ✓</span></div>';
         }
-        switchView('detail-view');
+
+        li.innerHTML = '<div class="book-title">'+book.title+'</div>'+progressHtml+metaHtml;
+        li.onclick = function(){ openBookDetail(book); };
+
+        var longTimer;
+        li.addEventListener('pointerdown', function(){ longTimer = setTimeout(function(){ showContextMenu(book, li); }, 500); });
+        li.addEventListener('pointerup', function(){ clearTimeout(longTimer); });
+        li.addEventListener('pointerleave', function(){ clearTimeout(longTimer); });
+        li.addEventListener('pointermove', function(){ clearTimeout(longTimer); });
+
+        if (lists[book.status]) lists[book.status].appendChild(li);
+    });
+
+    for (var k in lists) {
+        lists[k].classList.toggle('empty', lists[k].children.length === 0);
     }
 
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    var qb = document.getElementById('random-quote');
+    if (appData.excerpts.length) {
+        var e = appData.excerpts[Math.floor(Math.random() * appData.excerpts.length)];
+        var b = appData.books.find(function(x){ return x.id == e.bookId; });
+        qb.innerHTML = '<div style="font-style:italic;margin-bottom:6px;">"'+e.text+'"</div><div style="font-size:12px;text-align:right;">——《'+(b?b.title:'未知')+'》 '+(e.location?'| '+e.location:'')+'</div>';
+    } else {
+        qb.innerHTML = '<span style="color:var(--muted);">暂无书摘，点击右上角 +笔记 添加。</span>';
+    }
+}
 
-    function addNewBook(targetStatus) {
-        closeModal('add-book-modal');
-        const title = prompt("请输入书名:");
-        if (title && title.trim() !== "") {
-            appData.books.push({ id: Date.now(), title: title.trim(), status: targetStatus, spineColor: "#" + Math.floor(Math.random()*16777215).toString(16), readTime: 0, progress: 0 });
-            saveData(); renderHome();
-        }
+function openBookDetail(book) {
+    currentActiveBook = book;
+    document.getElementById('detail-title').textContent = book.title;
+    var st = { want: '状态：想读', reading: '状态：在读', read: '状态：已读' };
+    document.getElementById('detail-status').textContent = st[book.status];
+    document.getElementById('progress-slider').value = book.progress || 0;
+    document.getElementById('progress-val').textContent = (book.progress || 0) + '%';
+
+    var actions = document.getElementById('detail-actions');
+    actions.innerHTML = '';
+    if (book.status === 'want') {
+        actions.appendChild(createBtn('▶ 开始阅读', 'success', function(){ changeBookStatus('reading'); }));
+    } else if (book.status === 'reading') {
+        actions.appendChild(createBtn('🍅 番茄钟', 'accent', function(){ openPomodoro(book); }));
+        actions.appendChild(createBtn('📝 新建书摘', 'warn', function(){ openDetailEditor(); }));
+        actions.appendChild(createBtn('✓ 标记已读', 'secondary', function(){ changeBookStatus('read'); }));
+    } else if (book.status === 'read') {
+        actions.appendChild(createBtn('重新阅读', 'secondary', function(){ changeBookStatus('reading'); }));
     }
 
-    function openGlobalEditor() {
-        const readingBooks = appData.books.filter(b => b.status === 'reading');
-        if (readingBooks.length === 0) { alert("目前没有在读的书籍！"); return; }
-        editorSourceView = 'home-view'; initEditor("新建书摘/书评", readingBooks, null);
-    }
+    renderDetailExcerpts();
+    switchView('detail-view');
+}
 
-    function openDetailEditor(title) { editorSourceView = 'detail-view'; initEditor(title, [currentActiveBook], currentActiveBook.id); }
+function renameBook(newTitle) {
+    if (!currentActiveBook || !newTitle) return;
+    currentActiveBook.title = newTitle;
+    saveData();
+    document.getElementById('detail-title').textContent = newTitle;
+}
 
-    function initEditor(title, bookOptions, defaultSelectedId) {
-        document.getElementById('editor-title').textContent = title;
-        const selectBox = document.getElementById('excerpt-book-select'); selectBox.innerHTML = '';
-        bookOptions.forEach(b => { const opt = document.createElement('option'); opt.value = b.id; opt.textContent = b.title; selectBox.appendChild(opt); });
-
-        const editorNode = document.getElementById('editor-content'); const locNode = document.getElementById('excerpt-location');
-
-        if (appData.draft && appData.draft.text) {
-            editorNode.innerHTML = appData.draft.text; locNode.value = appData.draft.location || '';
-            if (appData.draft.bookId && Array.from(selectBox.options).some(o => o.value == appData.draft.bookId)) selectBox.value = appData.draft.bookId;
-        } else { editorNode.innerHTML = ''; locNode.value = ''; if (defaultSelectedId) selectBox.value = defaultSelectedId; }
-        switchView('editor-view');
-    }
-
-    function attemptCloseEditor() {
-        const currentContent = document.getElementById('editor-content').innerHTML.trim();
-        if (currentContent !== '' && currentContent !== '<br>') openModal('draft-modal'); else switchView(editorSourceView);
-    }
-
-    function handleDraft(action) {
-        closeModal('draft-modal');
-        if (action === 'cancel') return;
-        if (action === 'yes') appData.draft = { text: document.getElementById('editor-content').innerHTML, location: document.getElementById('excerpt-location').value, bookId: document.getElementById('excerpt-book-select').value };
-        else if (action === 'no') appData.draft = null;
-        saveData(); switchView(editorSourceView);
-    }
-
-    function saveExcerpt() {
-        let plainText = document.getElementById('editor-content').textContent.trim();
-        const loc = document.getElementById('excerpt-location').value; const bookId = parseInt(document.getElementById('excerpt-book-select').value);
-        if(plainText === '') { alert('内容不能为空！'); return; }
-        appData.excerpts.push({ id: Date.now(), bookId: bookId, text: plainText, location: loc.trim() }); appData.draft = null; saveData(); alert('保存成功！'); switchView(editorSourceView);
-    }
-
-    function execCmd(command, value = null) { document.execCommand(command, false, value); document.getElementById('editor-content').focus(); }
-    function insertLink() { const url = prompt('请输入链接:', 'https://'); if (url) execCmd('createLink', url); }
-
-    function switchView(viewId) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); if(viewId === 'home-view') renderHome(); }
-    function changeBookStatus(newStatus) { appData.books.find(b => b.id === currentActiveBook.id).status = newStatus; saveData(); switchView('home-view'); }
-    function toggleTheme() {
-        appData.theme = document.getElementById('theme-toggle').checked ? 'dark' : 'light';
-        if(appData.theme === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+function deleteBookConfirm() {
+    if (!currentActiveBook) return;
+    confirmDialog('删除《'+currentActiveBook.title+'》及其所有书摘？', function(){
+        appData.books = appData.books.filter(function(b){ return b.id !== currentActiveBook.id; });
+        appData.excerpts = appData.excerpts.filter(function(e){ return e.bookId !== currentActiveBook.id; });
+        currentActiveBook = null;
         saveData();
+        switchView('home-view');
+        toast('已删除');
+    });
+}
+
+function quickProgress(v) {
+    if (!currentActiveBook) return;
+    currentActiveBook.progress = v;
+    if (v === 100 && currentActiveBook.status === 'reading') currentActiveBook.status = 'read';
+    document.getElementById('progress-slider').value = v;
+    document.getElementById('progress-val').textContent = v + '%';
+    saveData();
+    openBookDetail(currentActiveBook);
+}
+
+function renderDetailExcerpts() {
+    var list = document.getElementById('detail-excerpts');
+    list.innerHTML = '';
+    var excerpts = appData.excerpts.filter(function(e){ return e.bookId == currentActiveBook.id; });
+    if (!excerpts.length) {
+        list.innerHTML = '<div class="empty-hint">暂无书摘</div>';
+        return;
     }
-    function createBtn(text, style, onClick) { const b = document.createElement('button'); b.textContent = text; b.className = style; b.onclick = onClick; return b; }
+    excerpts.forEach(function(e) {
+        var li = document.createElement('li');
+        var preview = e.text.length > 80 ? e.text.substring(0,80)+'...' : e.text;
+        li.innerHTML =
+            '<div class="excerpt-body" onclick="viewExcerpt('+e.id+')">'+
+            '<div>"'+preview+'"</div>'+
+            '<div class="excerpt-meta">'+(e.location||'无位置')+'</div>'+
+            '</div>'+
+            '<button class="del-excerpt" onclick="event.stopPropagation();deleteExcerpt('+e.id+')">×</button>';
+        list.appendChild(li);
+    });
+}
 
-    window.onload = () => { initData(); renderHome(); };
+function viewExcerpt(id) {
+    var e = appData.excerpts.find(function(x){ return x.id === id; });
+    if (!e) return;
+    var b = appData.books.find(function(x){ return x.id == e.bookId; });
+    document.getElementById('excerpt-view-text').textContent = e.text;
+    document.getElementById('excerpt-view-meta').textContent = '——《'+(b?b.title:'未知')+'》 '+(e.location||'');
+    openModal('excerpt-view-modal');
+}
+
+function deleteExcerpt(id) {
+    confirmDialog('删除这条书摘？', function(){
+        appData.excerpts = appData.excerpts.filter(function(e){ return e.id !== id; });
+        saveData(); renderDetailExcerpts();
+        toast('书摘已删除');
+    });
+}
+
+function changeBookStatus(s) {
+    var b = appData.books.find(function(x){ return x.id === currentActiveBook.id; });
+    if (!b) return;
+    if (s === 'read') { b.progress = 100; }
+    b.status = s;
+    saveData();
+    switchView('home-view');
+    toast(s === 'reading' ? '开始阅读！' : s === 'read' ? '已标记读完' : '已更新');
+}
+
+// ---- Context menu ----
+
+function showContextMenu(book, el) {
+    var menu = document.getElementById('context-menu');
+    var rect = el.getBoundingClientRect();
+    var labels = { want: '标记在读', reading: '标记已读', read: '重新在读' };
+    var targets = { want: 'reading', reading: 'read', read: 'reading' };
+
+    menu.innerHTML =
+        '<button onclick="hideCtx();ctxAction('+book.id+',\''+targets[book.status]+'\')">'+labels[book.status]+'</button>'+
+        '<button class="danger" onclick="hideCtx();ctxDelete('+book.id+')">删除</button>';
+    menu.style.display = 'block';
+    menu.style.top = Math.min(rect.bottom + 4, window.innerHeight - 120) + 'px';
+    menu.style.left = Math.min(rect.left, window.innerWidth - 160) + 'px';
+    setTimeout(function(){ document.addEventListener('click', hideCtx, { once: true }); }, 0);
+}
+
+function hideCtx() { document.getElementById('context-menu').style.display = 'none'; }
+
+function ctxAction(bookId, newStatus) {
+    var b = appData.books.find(function(x){ return x.id === bookId; });
+    if (!b) return;
+    if (newStatus === 'read') b.progress = 100;
+    b.status = newStatus;
+    saveData(); renderHome(); toast('已更新');
+}
+
+function ctxDelete(bookId) {
+    var b = appData.books.find(function(x){ return x.id === bookId; });
+    if (!b) return;
+    confirmDialog('删除《'+b.title+'》？', function(){
+        appData.books = appData.books.filter(function(x){ return x.id !== bookId; });
+        appData.excerpts = appData.excerpts.filter(function(x){ return x.bookId !== bookId; });
+        saveData(); renderHome(); toast('已删除');
+    });
+}
+
+// ---- Pomodoro ----
+
+function openPomodoro(book) {
+    currentActiveBook = book;
+    document.getElementById('pomodoro-book-name').textContent = book.title;
+    resetPomodoro();
+    switchView('pomodoro-view');
+}
+
+function exitPomodoro() {
+    if (pomodoroRunning && pomodoroSeconds > 5 && !pomodoroIsBreak) {
+        confirmDialog('番茄钟还在运行，退出后当前进度不会记录。确定？', function(){
+            stopPomodoro();
+            switchView('detail-view');
+            openBookDetail(currentActiveBook);
+        });
+    } else {
+        stopPomodoro();
+        switchView('detail-view');
+        if (currentActiveBook) openBookDetail(currentActiveBook);
+    }
+}
+
+function getPomodoroTotal() {
+    return pomodoroIsBreak
+        ? (parseInt(document.getElementById('break-minutes').value) || 5) * 60
+        : (parseInt(document.getElementById('focus-minutes').value) || 25) * 60;
+}
+
+function resetPomodoro() {
+    stopPomodoro();
+    pomodoroIsBreak = false;
+    pomodoroTotal = getPomodoroTotal();
+    pomodoroSeconds = pomodoroTotal;
+    updatePomodoroDisplay();
+    document.getElementById('pomodoro-start-btn').textContent = '开始';
+    document.getElementById('pomodoro-phase-label').textContent = '专注';
+    document.getElementById('pomodoro-ring').classList.remove('break');
+}
+
+function togglePomodoro() {
+    if (pomodoroRunning) {
+        stopPomodoro();
+        document.getElementById('pomodoro-start-btn').textContent = '继续';
+    } else {
+        if (pomodoroSeconds === 0) {
+            pomodoroTotal = getPomodoroTotal(); pomodoroSeconds = pomodoroTotal;
+        }
+        pomodoroRunning = true;
+        document.getElementById('pomodoro-start-btn').textContent = '暂停';
+        var startTick = Date.now(), startSeconds = pomodoroSeconds;
+        pomodoroInterval = setInterval(function(){
+            var elapsed = Math.floor((Date.now() - startTick) / 1000);
+            pomodoroSeconds = Math.max(0, startSeconds - elapsed);
+            updatePomodoroDisplay();
+            if (pomodoroSeconds <= 0) pomodoroComplete();
+        }, 250);
+    }
+}
+
+function stopPomodoro() {
+    pomodoroRunning = false;
+    if (pomodoroInterval) { clearInterval(pomodoroInterval); pomodoroInterval = null; }
+}
+
+function updatePomodoroDisplay() {
+    var m = Math.floor(pomodoroSeconds / 60), s = pomodoroSeconds % 60;
+    document.getElementById('pomodoro-display').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    var progress = CIRC * (1 - pomodoroSeconds / pomodoroTotal);
+    document.getElementById('pomodoro-progress').setAttribute('stroke-dashoffset', CIRC - progress);
+}
+
+function pomodoroComplete() {
+    stopPomodoro();
+    var wasBreak = pomodoroIsBreak;
+
+    if (!wasBreak) {
+        var duration = Math.floor(pomodoroTotal / 60);
+        appData.readSessions.push({ timestamp: Date.now(), duration: duration });
+        if (currentActiveBook) {
+            currentActiveBook.readTime = (currentActiveBook.readTime || 0) + duration;
+            if (currentActiveBook.progress < 100) {
+                currentActiveBook.progress = Math.min(99, (currentActiveBook.progress || 0) + Math.round(duration / 3));
+            }
+        }
+        saveData();
+        toast('专注 '+duration+' 分钟完成！');
+    }
+
+    pomodoroIsBreak = !wasBreak;
+    pomodoroTotal = getPomodoroTotal();
+    pomodoroSeconds = pomodoroTotal;
+    document.getElementById('pomodoro-start-btn').textContent = '开始';
+    document.getElementById('pomodoro-phase-label').textContent = pomodoroIsBreak ? '休息' : '专注';
+    if (pomodoroIsBreak) {
+        document.getElementById('pomodoro-ring').classList.add('break');
+    } else {
+        document.getElementById('pomodoro-ring').classList.remove('break');
+    }
+    updatePomodoroDisplay();
+
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('书摘与番茄钟', { body: wasBreak ? '休息结束，开始下一轮专注！' : '番茄钟完成！休息一下吧。' });
+    }
+}
+
+// ---- Mine ----
+
+function openMineView() {
+    document.getElementById('stat-total').textContent = appData.books.length;
+    document.getElementById('stat-reading').textContent = appData.books.filter(function(b){ return b.status==='reading'; }).length;
+    document.getElementById('stat-want').textContent = appData.books.filter(function(b){ return b.status==='want'; }).length;
+    document.getElementById('stat-read').textContent = appData.books.filter(function(b){ return b.status==='read'; }).length;
+
+    var sessions = appData.readSessions || [];
+    var total = sessions.reduce(function(s,x){ return s+x.duration; }, 0);
+    var weekAgo = Date.now() - 604800000;
+    var week = sessions.filter(function(x){ return x.timestamp >= weekAgo; }).reduce(function(s,x){ return s+x.duration; }, 0);
+
+    document.getElementById('stat-total-time').textContent = total;
+    document.getElementById('stat-week-time').textContent = week;
+    switchView('mine-view');
+}
+
+function exportData() {
+    var json = JSON.stringify(appData, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'book-app-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    a.click(); URL.revokeObjectURL(a.href);
+    toast('数据已导出');
+}
+
+function importData(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var data = JSON.parse(e.target.result);
+            if (!data.books || !data.excerpts) throw new Error('格式错误');
+            confirmDialog('导入数据：'+data.books.length+' 本书，'+data.excerpts.length+' 条书摘。会覆盖当前数据，确定？', function(){
+                appData = data;
+                appData.draft = appData.draft || null;
+                appData.readSessions = appData.readSessions || [];
+                appData.theme = appData.theme || 'light';
+                saveData();
+                document.body.classList.toggle('dark-mode', appData.theme === 'dark');
+                renderHome(); switchView('home-view');
+                toast('数据已导入');
+            });
+        } catch (err) {
+            toast('导入失败：文件格式不正确');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function confirmClearData() {
+    confirmDialog('确定清空所有数据？此操作不可恢复。', function(){
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    });
+}
+
+// ---- Editor ----
+
+function openGlobalEditor() {
+    var reading = appData.books.filter(function(b){ return b.status==='reading'; });
+    if (!reading.length) { toast('请先添加在读的书籍'); return; }
+    editorSourceView = 'home-view';
+    initEditor('新建书摘/书评', reading, null);
+}
+
+function openDetailEditor() {
+    editorSourceView = 'detail-view';
+    initEditor('新建书摘', [currentActiveBook], currentActiveBook.id);
+}
+
+function initEditor(title, bookOptions, defId) {
+    document.getElementById('editor-title').textContent = title;
+    var sel = document.getElementById('excerpt-book-select'); sel.innerHTML = '';
+    bookOptions.forEach(function(b){
+        var o = document.createElement('option'); o.value = b.id; o.textContent = b.title; sel.appendChild(o);
+    });
+
+    var ed = document.getElementById('editor-content'), loc = document.getElementById('excerpt-location');
+    if (appData.draft && appData.draft.text) {
+        ed.innerHTML = appData.draft.text; loc.value = appData.draft.location || '';
+        var draftBid = parseInt(appData.draft.bookId);
+        if (draftBid && Array.from(sel.options).some(function(o){ return o.value == draftBid; })) {
+            sel.value = draftBid;
+        }
+    } else {
+        ed.innerHTML = ''; loc.value = '';
+        if (defId) sel.value = defId;
+    }
+    switchView('editor-view');
+    setTimeout(function(){ ed.focus(); }, 100);
+}
+
+function attemptCloseEditor() {
+    var content = document.getElementById('editor-content').innerHTML.trim();
+    if (content && content !== '<br>') openModal('draft-modal');
+    else switchView(editorSourceView);
+}
+
+function handleDraft(action) {
+    closeModal('draft-modal');
+    if (action === 'cancel') return;
+    if (action === 'yes') {
+        appData.draft = {
+            text: document.getElementById('editor-content').innerHTML,
+            location: document.getElementById('excerpt-location').value,
+            bookId: parseInt(document.getElementById('excerpt-book-select').value)
+        };
+    } else {
+        appData.draft = null;
+    }
+    saveData(); switchView(editorSourceView);
+}
+
+function saveExcerpt() {
+    var text = document.getElementById('editor-content').textContent.trim();
+    var loc = document.getElementById('excerpt-location').value.trim();
+    var bookId = parseInt(document.getElementById('excerpt-book-select').value);
+    if (!text) { toast('内容不能为空'); return; }
+    appData.excerpts.push({ id: Date.now(), bookId: bookId, text: text, location: loc });
+    appData.draft = null; saveData();
+    toast('已保存'); switchView(editorSourceView);
+}
+
+function execCmd(cmd, val) { document.execCommand(cmd, false, val || null); document.getElementById('editor-content').focus(); }
+function insertLink() { var u = prompt('链接地址:', 'https://'); if (u) execCmd('createLink', u); }
+
+// ---- Modals ----
+
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function switchView(viewId) {
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById(viewId).classList.add('active');
+    if (viewId === 'home-view') renderHome();
+}
+
+function toggleTheme() {
+    appData.theme = document.getElementById('theme-toggle').checked ? 'dark' : 'light';
+    document.body.classList.toggle('dark-mode', appData.theme === 'dark');
+    saveData();
+}
+
+function addNewBook(targetStatus) {
+    closeModal('add-book-modal');
+    var title = prompt('请输入书名:');
+    if (title && title.trim()) {
+        appData.books.push({
+            id: Date.now(), title: title.trim(), status: targetStatus,
+            spineColor: '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'),
+            readTime: 0, progress: targetStatus==='read'?100:0
+        });
+        saveData(); renderHome();
+        toast('已添加');
+    }
+}
+
+function createBtn(text, cls, cb) {
+    var b = document.createElement('button');
+    b.textContent = text; b.className = cls; b.onclick = cb;
+    return b;
+}
+
+// ---- PWA ----
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+
+document.addEventListener('click', function askNotify(){
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}, { once: true });
+
+// ---- Init ----
+
+window.onload = function(){ initData(); renderHome(); };
+
+// Close modals by clicking overlay
+document.addEventListener('click', function(e){
+    if (e.target.classList.contains('modal-overlay') && e.target.classList.contains('show')) {
+        e.target.classList.remove('show');
+    }
+});
 </script>
-
 </body>
 </html>
