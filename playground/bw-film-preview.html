@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>黑白胶片冲洗预览</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel-bg: rgba(30, 30, 30, 0.95);
+    --text: #ccc;
+    --accent: #e0c080;
+    --slider-track: #444;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Helvetica Neue', sans-serif;
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ── viewfinder ── */
+  .viewfinder {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* 隐藏原始彩色视频，只显示 canvas */
+    opacity: 0;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: auto;
+  }
+
+  /* ── top bar ── */
+  .top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+  }
+
+  .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  .lens-badge {
+    font-size: 11px;
+    color: #999;
+    background: rgba(255,255,255,0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .switch-lens-btn {
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .switch-lens-btn:active {
+    background: rgba(255,255,255,0.2);
+  }
+  .switch-lens-btn.hidden {
+    display: none;
+  }
+
+  /* ── bottom control panel ── */
+  .panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 16px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  /* ── contrast quick picks ── */
+  .contrast-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .contrast-btn {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #aaa;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .contrast-btn.active {
+    color: #fff;
+    background: rgba(224,192,128,0.2);
+    border-color: var(--accent);
+  }
+  .contrast-btn:active {
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* ── sliders ── */
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .slider-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .slider-label {
+    font-size: 11px;
+    color: #999;
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .slider-value {
+    font-size: 11px;
+    color: #777;
+    width: 30px;
+    text-align: left;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--slider-track);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--accent);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* ── bottom row ── */
+  .action-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .freeze-btn {
+    flex: 1;
+    padding: 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .freeze-btn:active {
+    opacity: 0.8;
+  }
+  .freeze-btn.active {
+    background: #ff6b6b;
+    color: #fff;
+  }
+
+  .reset-btn {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #999;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .reset-btn:active {
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* ── info overlay ── */
+  .info-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    padding: 10px 24px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 13px;
+    border-radius: 10px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .info-toast.show {
+    opacity: 1;
+  }
+
+  /* ── start overlay ── */
+  .start-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    gap: 16px;
+  }
+  .start-overlay.hidden {
+    display: none;
+  }
+  .start-btn {
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .start-btn:active {
+    opacity: 0.8;
+  }
+  .start-hint {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    line-height: 1.6;
+    max-width: 260px;
+  }
+  .start-error {
+    font-size: 13px;
+    color: #ff6b6b;
+    text-align: center;
+    max-width: 300px;
+    line-height: 1.6;
+    display: none;
+  }
+  .start-error.show {
+    display: block;
+  }
+
+  /* ── photo mode toggle ── */
+  .photo-only { display: none; }
+  body.photo-mode .photo-only { display: block; }
+  body.photo-mode .live-only { display: none; }
+  body.photo-mode .start-overlay { gap: 12px; }
+
+  #captureBtn, #galleryBtn {
+    width: 200px;
+  }
+  #galleryBtn {
+    background: rgba(255,255,255,0.1);
+    color: #ccc;
+    border: 1px solid rgba(255,255,255,0.2);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 启动遮罩 ── -->
+<div class="start-overlay" id="startOverlay">
+  <!-- 安全上下文：实时预览 -->
+  <button class="start-btn live-only" id="startBtn">📷 启动相机</button>
+  <span class="start-hint live-only" id="startHint">点击以授权摄像头访问</span>
+
+  <!-- 非安全上下文：拍照模式 -->
+  <span class="start-hint photo-only" id="photoHint">
+    实时预览需 HTTPS。当前为 <strong id="currentProto"></strong> 协议，使用拍照模式。
+  </span>
+  <button class="start-btn photo-only" id="captureBtn">📸 拍照</button>
+  <button class="start-btn photo-only" id="galleryBtn">🖼️ 选择照片</button>
+
+  <span class="start-error" id="startError"></span>
+</div>
+
+<!-- 隐藏的文件输入，用于拍照/选图 -->
+<input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="galleryInput" accept="image/*" style="display:none">
+
+<div class="viewfinder">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+</div>
+
+<div class="top-bar">
+  <span class="title" id="titleBar">黑白负片预览</span>
+  <button class="switch-lens-btn" id="switchLens" onclick="switchLens()">切换镜头</button>
+  <span class="lens-badge" id="lensLabel">标准</span>
+</div>
+
+<div class="panel">
+  <!-- 对比度快捷 -->
+  <div class="contrast-row" id="contrastBtns">
+    <button class="contrast-btn active" data-preset="normal">标准</button>
+    <button class="contrast-btn" data-preset="low">低</button>
+    <button class="contrast-btn" data-preset="medium">中</button>
+    <button class="contrast-btn" data-preset="high">高</button>
+  </div>
+
+  <!-- 滑块 -->
+  <div class="slider-group">
+    <div class="slider-item">
+      <span class="slider-label">对比度</span>
+      <input type="range" id="contrast" min="50" max="200" value="100" step="1">
+      <span class="slider-value" id="contrastVal">1.00</span>
+    </div>
+    <div class="slider-item">
+      <span class="slider-label">高光</span>
+      <input type="range" id="highlights" min="-100" max="100" value="0" step="1">
+      <span class="slider-value" id="highlightsVal">0</span>
+    </div>
+    <div class="slider-item">
+      <span class="slider-label">阴影</span>
+      <input type="range" id="shadows" min="-100" max="100" value="0" step="1">
+      <span class="slider-value" id="shadowsVal">0</span>
+    </div>
+  </div>
+
+  <!-- 操作行 -->
+  <div class="action-row">
+    <button class="freeze-btn" id="freezeBtn" onclick="toggleFreeze()">❄️ 冻结画面</button>
+    <button class="reset-btn" onclick="resetAll()">重置</button>
+  </div>
+</div>
+
+<div class="info-toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────
+// state
+// ─────────────────────────────────────
+let stream = null;
+let currentDeviceId = null;
+let cameras = [];
+let activeLensIndex = 0;
+let frozen = false;
+let frozenFrame = null; // ImageData snapshot (live mode only)
+let animationId = null;
+
+// photo mode
+let photoMode = false;           // true = 拍照模式，false = 实时预览
+let loadedImage = null;          // HTMLImageElement，已加载的照片
+let photoImageData = null;       // ImageData，照片的原始像素缓存（用于调参重绘）
+
+// sliders
+let contrastVal = 100;    // 50–200, 100 = neutral
+let highlightsVal = 0;    // -100..100
+let shadowsVal = 0;       // -100..100
+
+// DOM
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+const contrastSlider = document.getElementById('contrast');
+const highlightsSlider = document.getElementById('highlights');
+const shadowsSlider = document.getElementById('shadows');
+const contrastValEl = document.getElementById('contrastVal');
+const highlightsValEl = document.getElementById('highlightsVal');
+const shadowsValEl = document.getElementById('shadowsVal');
+const freezeBtn = document.getElementById('freezeBtn');
+const lensLabel = document.getElementById('lensLabel');
+const switchLensBtn = document.getElementById('switchLens');
+const titleBar = document.getElementById('titleBar');
+const toast = document.getElementById('toast');
+
+const startOverlay = document.getElementById('startOverlay');
+const startBtn = document.getElementById('startBtn');
+const startHint = document.getElementById('startHint');
+const startError = document.getElementById('startError');
+const captureBtn = document.getElementById('captureBtn');
+const galleryBtn = document.getElementById('galleryBtn');
+const captureInput = document.getElementById('captureInput');
+const galleryInput = document.getElementById('galleryInput');
+const photoHint = document.getElementById('photoHint');
+const currentProto = document.getElementById('currentProto');
+
+let toastTimer = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+function showStartError(msg) {
+  startError.textContent = msg;
+  startError.classList.add('show');
+}
+
+// ─────────────────────────────────────
+// 检测是否安全上下文（HTTPS / localhost）
+// ─────────────────────────────────────
+function isSecureContext() {
+  if (window.isSecureContext) return true;
+  if (location.protocol === 'file:') return false;
+  if (location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return false;
+  return true;
+}
+
+// ─────────────────────────────────────
+// camera enumeration（在已有权限后调用）
+// ─────────────────────────────────────
+async function enumerateCameras() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    cameras = devices.filter(d => d.kind === 'videoinput');
+    if (cameras.length === 0) {
+      cameras = [{ deviceId: 'default', label: '默认镜头' }];
+    }
+    console.log('📷 cameras:', cameras.map(c => c.label));
+  } catch (e) {
+    console.warn('enumerateDevices failed:', e);
+    cameras = [{ deviceId: 'default', label: '默认镜头' }];
+  }
+
+  // try to identify telephoto by label keywords
+  let teleIdx = -1;
+  let wideIdx = -1;
+  let ultraWideIdx = -1;
+  let mainIdx = -1;
+
+  cameras.forEach((c, i) => {
+    const label = c.label.toLowerCase();
+    if (label.includes('tele') || label.includes('长焦')) {
+      teleIdx = i;
+    } else if (label.includes('ultra') || label.includes('超广')) {
+      ultraWideIdx = i;
+    } else if (label.includes('wide') || label.includes('广角')) {
+      wideIdx = i;
+    } else if (label.includes('back') || label.includes('后置') || label.includes('后摄')) {
+      if (mainIdx === -1) mainIdx = i;
+    }
+  });
+
+  // prefer telephoto, then main back camera, then environment-facing
+  if (teleIdx >= 0) {
+    activeLensIndex = teleIdx;
+  } else if (wideIdx >= 0) {
+    activeLensIndex = wideIdx;
+  } else if (mainIdx >= 0) {
+    activeLensIndex = mainIdx;
+  } else {
+    const envIdx = cameras.findIndex(c =>
+      c.label.toLowerCase().includes('back') ||
+      c.label.toLowerCase().includes('environment') ||
+      c.label.toLowerCase().includes('后')
+    );
+    activeLensIndex = envIdx >= 0 ? envIdx : 0;
+  }
+
+  console.log('🎯 selected index:', activeLensIndex, cameras[activeLensIndex]?.label);
+}
+
+// ─────────────────────────────────────
+// start camera (live mode only)
+// ─────────────────────────────────────
+async function startCamera(deviceId) {
+  // stop old stream
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+
+  const constraints = {
+    video: {
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      facingMode: 'environment',
+    },
+    audio: false,
+  };
+
+  if (deviceId) {
+    constraints.video.deviceId = { exact: deviceId };
+  }
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    // Try to apply zoom via track capabilities
+    const track = stream.getVideoTracks()[0];
+    if (track.getCapabilities) {
+      const caps = track.getCapabilities();
+      console.log('🔍 track capabilities:', caps);
+      if (caps.zoom) {
+        const maxZoom = caps.zoom.max;
+        const targetZoom = Math.min(maxZoom, Math.max(maxZoom * 0.7, 2.5));
+        try {
+          await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+          console.log('🔭 zoom applied:', targetZoom);
+        } catch (e) {
+          console.log('⚠️ zoom constrain failed:', e.message);
+        }
+      }
+      if (caps.zoom && caps.zoom.max >= 3) {
+        lensLabel.textContent = '长焦';
+      }
+    }
+
+    video.srcObject = stream;
+    await video.play();
+
+    // set canvas size once video metadata loads
+    video.addEventListener('loadedmetadata', () => {
+      resizeCanvas();
+    }, { once: true });
+
+    updateLensLabel();
+    return true;
+  } catch (e) {
+    console.error('camera error:', e);
+    // fallback: basic constraints
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      video.srcObject = stream;
+      await video.play();
+      video.addEventListener('loadedmetadata', () => resizeCanvas(), { once: true });
+      return true;
+    } catch (e2) {
+      console.error('fallback camera error:', e2);
+      return false;
+    }
+  }
+}
+
+function updateLensLabel() {
+  if (photoMode) { lensLabel.textContent = '照片'; return; }
+  const cam = cameras[activeLensIndex];
+  if (!cam) { lensLabel.textContent = '标准'; return; }
+  const label = cam.label.toLowerCase();
+  if (label.includes('tele') || label.includes('长焦')) {
+    lensLabel.textContent = '长焦';
+  } else if (label.includes('ultra') || label.includes('超广')) {
+    lensLabel.textContent = '超广角';
+  } else if (label.includes('wide') || label.includes('广角')) {
+    lensLabel.textContent = '广角';
+  } else if (label.includes('front') || label.includes('前') || label.includes('自拍')) {
+    lensLabel.textContent = '前置';
+  } else {
+    lensLabel.textContent = '标准';
+  }
+}
+
+async function switchLens() {
+  if (photoMode) {
+    showToast('拍照模式不支持切换镜头');
+    return;
+  }
+  if (cameras.length <= 1) {
+    showToast('仅有一个镜头');
+    return;
+  }
+  // cycle through rear cameras
+  const rearIndices = [];
+  cameras.forEach((c, i) => {
+    const label = c.label.toLowerCase();
+    // prefer back cameras, skip front
+    if (!label.includes('front') && !label.includes('前') && !label.includes('自拍')) {
+      rearIndices.push(i);
+    }
+  });
+  if (rearIndices.length <= 1 && cameras.length > 1) {
+    // just cycle all
+    activeLensIndex = (activeLensIndex + 1) % cameras.length;
+  } else if (rearIndices.length > 0) {
+    const curInRear = rearIndices.indexOf(activeLensIndex);
+    activeLensIndex = rearIndices[(curInRear + 1) % rearIndices.length];
+  } else {
+    activeLensIndex = (activeLensIndex + 1) % cameras.length;
+  }
+
+  await startCamera(cameras[activeLensIndex].deviceId);
+  updateLensLabel();
+  showToast('已切换: ' + (cameras[activeLensIndex]?.label || '镜头 ' + activeLensIndex));
+}
+
+// ─────────────────────────────────────
+// canvas sizing
+// ─────────────────────────────────────
+function resizeCanvas() {
+  if (photoMode && loadedImage) {
+    canvas.width = loadedImage.naturalWidth;
+    canvas.height = loadedImage.naturalHeight;
+  } else {
+    const vw = video.videoWidth || 1920;
+    const vh = video.videoHeight || 1080;
+    canvas.width = vw;
+    canvas.height = vh;
+  }
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  console.log(`🖼️ canvas: ${canvas.width}x${canvas.height}`);
+}
+
+// ─────────────────────────────────────
+// image processing pipeline
+// ─────────────────────────────────────
+
+// Luminance weights for perceptually accurate grayscale
+const RW = 0.299;
+const GW = 0.587;
+const BW = 0.114;
+
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function sCurve(t, contrast) {
+  if (Math.abs(contrast - 1) < 0.01) return t;
+  const shifted = (t - 0.5) * contrast + 0.5;
+  return clamp(shifted, 0, 1);
+}
+
+function processFrame(srcData, dstData, width, height) {
+  const contrastFactor = contrastVal / 100;  // 0.5 .. 2.0
+  const highlightAdj = highlightsVal / 100;  // -1.0 .. 1.0
+  const shadowAdj = shadowsVal / 100;        // -1.0 .. 1.0
+
+  const total = width * height;
+
+  // First pass: grayscale + invert
+  for (let i = 0; i < total; i++) {
+    const si = i * 4; // source RGBA offset
+    const di = si;    // dest RGBA offset (same layout)
+
+    const r = srcData[si];
+    const g = srcData[si + 1];
+    const b = srcData[si + 2];
+
+    // Luminance grayscale
+    let gray = RW * r + GW * g + BW * b;
+
+    // Invert (negative film effect)
+    gray = 255 - gray;
+
+    dstData[di] = gray;
+    dstData[di + 1] = gray;
+    dstData[di + 2] = gray;
+    dstData[di + 3] = 255;
+  }
+
+  // Second pass: contrast + highlight/shadow (operate on the 0-255 grayscale)
+  for (let i = 0; i < total; i++) {
+    const di = i * 4;
+    let v = dstData[di] / 255; // normalize to 0..1
+
+    // Apply highlight/shadow adjustments before contrast
+    if (highlightAdj !== 0) {
+      const hFactor = highlightAdj > 0
+        ? (1 - v) * highlightAdj * 0.5
+        : v * Math.abs(highlightAdj) * 0.5;
+      v = clamp(v + hFactor * (v > 0.5 ? 1 : v * 2), 0, 1);
+    }
+
+    if (shadowAdj !== 0) {
+      const sFactor = shadowAdj > 0
+        ? (1 - v) * shadowAdj * 0.5
+        : v * Math.abs(shadowAdj) * 0.5;
+      v = clamp(v + sFactor * (v < 0.5 ? 1 : (1 - v) * 2), 0, 1);
+    }
+
+    // Contrast
+    if (contrastFactor !== 1) {
+      v = sCurve(v, contrastFactor);
+    }
+
+    const out = Math.round(clamp(v, 0, 1) * 255);
+    dstData[di] = out;
+    dstData[di + 1] = out;
+    dstData[di + 2] = out;
+  }
+}
+
+// ─────────────────────────────────────
+// photo mode: render a single frame (called on slider change / initial load)
+// ─────────────────────────────────────
+function renderPhotoFrame() {
+  if (!photoMode || !photoImageData) return;
+
+  const dstData = new Uint8ClampedArray(photoImageData.data.length);
+  processFrame(photoImageData.data, dstData, photoImageData.width, photoImageData.height);
+  const outImg = new ImageData(dstData, photoImageData.width, photoImageData.height);
+  ctx.putImageData(outImg, 0, 0);
+}
+
+// ─────────────────────────────────────
+// render loop (live mode) / one-shot (photo mode)
+// ─────────────────────────────────────
+function render() {
+  if (photoMode) {
+    // photo mode: 不需要连续渲染，只响应 slider 变化
+    // 但首次进入时确保已渲染
+    if (photoImageData) {
+      renderPhotoFrame();
+    }
+    animationId = null;
+    return;
+  }
+
+  // live mode
+  if (!video.videoWidth || video.paused) {
+    animationId = requestAnimationFrame(render);
+    return;
+  }
+
+  if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+    resizeCanvas();
+  }
+
+  if (frozen && frozenFrame) {
+    const imgData = new ImageData(
+      new Uint8ClampedArray(frozenFrame.data),
+      frozenFrame.width,
+      frozenFrame.height
+    );
+    const dstData = new Uint8ClampedArray(imgData.data.length);
+    processFrame(imgData.data, dstData, imgData.width, imgData.height);
+    const outImg = new ImageData(dstData, imgData.width, imgData.height);
+    ctx.putImageData(outImg, 0, 0);
+  } else {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const srcImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const dstData = new Uint8ClampedArray(srcImg.data.length);
+    processFrame(srcImg.data, dstData, canvas.width, canvas.height);
+    const outImg = new ImageData(dstData, canvas.width, canvas.height);
+    ctx.putImageData(outImg, 0, 0);
+  }
+
+  animationId = requestAnimationFrame(render);
+}
+
+// ─────────────────────────────────────
+// freeze
+// ─────────────────────────────────────
+function toggleFreeze() {
+  if (photoMode) {
+    // 拍照模式：冻结/解冻就是"重拍"
+    showToast('拍照模式下参数可随时调整，点击下方按钮重新拍照');
+    return;
+  }
+  frozen = !frozen;
+  if (frozen) {
+    frozenFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    freezeBtn.textContent = '▶️ 恢复实时';
+    freezeBtn.classList.add('active');
+    showToast('画面已冻结 — 可调整参数对比');
+  } else {
+    frozenFrame = null;
+    freezeBtn.textContent = '❄️ 冻结画面';
+    freezeBtn.classList.remove('active');
+    showToast('已恢复实时预览');
+  }
+}
+
+// ─────────────────────────────────────
+// contrast presets
+// ─────────────────────────────────────
+const presets = {
+  normal: { contrast: 100, highlights: 0, shadows: 0 },
+  low:    { contrast: 70, highlights: 20, shadows: 30 },
+  medium: { contrast: 130, highlights: -10, shadows: -10 },
+  high:   { contrast: 180, highlights: -30, shadows: -40 },
+};
+
+function applyPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+  contrastVal = p.contrast;
+  highlightsVal = p.highlights;
+  shadowsVal = p.shadows;
+  syncSlidersToState();
+
+  document.querySelectorAll('.contrast-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.preset === name);
+  });
+
+  // 拍照模式：立即重渲染
+  if (photoMode) renderPhotoFrame();
+}
+
+function syncSlidersToState() {
+  contrastSlider.value = contrastVal;
+  highlightsSlider.value = highlightsVal;
+  shadowsSlider.value = shadowsVal;
+  contrastValEl.textContent = (contrastVal / 100).toFixed(2);
+  highlightsValEl.textContent = highlightsVal;
+  shadowsValEl.textContent = shadowsVal;
+}
+
+function resetAll() {
+  applyPreset('normal');
+  showToast('参数已重置');
+}
+
+// ─────────────────────────────────────
+// slider events
+// ─────────────────────────────────────
+contrastSlider.addEventListener('input', () => {
+  contrastVal = parseInt(contrastSlider.value);
+  contrastValEl.textContent = (contrastVal / 100).toFixed(2);
+  document.querySelectorAll('.contrast-btn').forEach(b => b.classList.remove('active'));
+  if (photoMode) renderPhotoFrame();
+});
+
+highlightsSlider.addEventListener('input', () => {
+  highlightsVal = parseInt(highlightsSlider.value);
+  highlightsValEl.textContent = highlightsVal;
+  document.querySelectorAll('.contrast-btn').forEach(b => b.classList.remove('active'));
+  if (photoMode) renderPhotoFrame();
+});
+
+shadowsSlider.addEventListener('input', () => {
+  shadowsVal = parseInt(shadowsSlider.value);
+  shadowsValEl.textContent = shadowsVal;
+  document.querySelectorAll('.contrast-btn').forEach(b => b.classList.remove('active'));
+  if (photoMode) renderPhotoFrame();
+});
+
+// ─────────────────────────────────────
+// preset button clicks
+// ─────────────────────────────────────
+document.getElementById('contrastBtns').addEventListener('click', (e) => {
+  const btn = e.target.closest('.contrast-btn');
+  if (!btn) return;
+  applyPreset(btn.dataset.preset);
+});
+
+// ─────────────────────────────────────
+// window resize
+// ─────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (video.videoWidth && !photoMode) resizeCanvas();
+});
+
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    if (video.videoWidth && !photoMode) resizeCanvas();
+  }, 300);
+});
+
+// ─────────────────────────────────────
+// photo mode: load image from file
+// ─────────────────────────────────────
+function handleImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('请选择图片文件');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      loadedImage = img;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+
+      // 绘制原始照片到 canvas，提取像素数据
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      photoImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      console.log(`📸 photo loaded: ${img.naturalWidth}x${img.naturalHeight}`);
+
+      // 应用黑白滤镜并显示
+      renderPhotoFrame();
+
+      // 隐藏遮罩
+      startOverlay.classList.add('hidden');
+      showToast('照片已加载 — 调整下方参数查看效果');
+    };
+    img.onerror = () => {
+      showToast('图片加载失败，请重试');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function initPhotoMode() {
+  photoMode = true;
+  document.body.classList.add('photo-mode');
+
+  // 更新 UI
+  titleBar.textContent = '黑白负片预览 · 拍照模式';
+  switchLensBtn.classList.add('hidden');
+  lensLabel.textContent = '照片';
+  freezeBtn.textContent = '📸 重新拍照';
+
+  // 显示协议信息
+  currentProto.textContent = location.protocol;
+
+  // 绑定拍照按钮 → 触发隐藏的 file input
+  captureBtn.addEventListener('click', () => {
+    captureInput.click();
+  });
+
+  // 绑定选图按钮
+  galleryBtn.addEventListener('click', () => {
+    galleryInput.click();
+  });
+
+  // 绑定 file input 的 change 事件
+  captureInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageFile(e.target.files[0]);
+    }
+    // 清空 input，允许重复选同一文件
+    e.target.value = '';
+  });
+
+  galleryInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageFile(e.target.files[0]);
+    }
+    e.target.value = '';
+  });
+
+  // 修改 freeze 按钮行为：重新拍照
+  freezeBtn.onclick = () => {
+    captureInput.click();
+  };
+
+  // 初始状态：显示拍照/选图按钮，面板控件可用
+  syncSlidersToState();
+}
+
+// ─────────────────────────────────────
+// boot — 页面初始化入口
+// ─────────────────────────────────────
+function boot() {
+  if (isSecureContext()) {
+    // 安全上下文：显示实时预览按钮，等用户点击
+    // 不需要额外操作，live-only 按钮默认可见
+  } else {
+    // 非安全上下文：切换到拍照模式
+    initPhotoMode();
+  }
+}
+
+// ─────────────────────────────────────
+// 绑定启动按钮（用户手势触发，仅实时模式）
+// ─────────────────────────────────────
+startBtn.addEventListener('click', () => {
+  if (photoMode) return;
+
+  (async () => {
+    // 检查 mediaDevices 是否可用
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showStartError('⚠️ 当前浏览器不支持摄像头访问，请使用拍照模式');
+      showPhotoFallback();
+      return;
+    }
+
+    // 请求摄像头
+    startBtn.textContent = '⏳ 启动中...';
+    startBtn.disabled = true;
+
+    const ok = await startCamera(null);
+
+    if (!ok) {
+      // 实时摄像头失败 → 自动降级到拍照模式
+      console.log('⚠️ 实时摄像头启动失败，降级到拍照模式');
+      showPhotoFallback();
+      return;
+    }
+
+    // 枚举所有设备
+    await enumerateCameras();
+
+    // 如果有更好的镜头切换到它
+    const bestDeviceId = cameras[activeLensIndex]?.deviceId;
+    if (bestDeviceId) {
+      await startCamera(bestDeviceId);
+    }
+
+    // 隐藏启动遮罩，显示取景界面
+    startOverlay.classList.add('hidden');
+
+    // 启动渲染
+    syncSlidersToState();
+    render();
+
+    console.log('✅ camera ready');
+  })().catch(err => {
+    console.error('boot error:', err);
+    console.log('⚠️ 启动异常，降级到拍照模式');
+    showPhotoFallback();
+  });
+});
+
+// 实时预览失败时自动切换到拍照模式
+function showPhotoFallback() {
+  initPhotoMode();
+  startError.classList.remove('show');
+  startError.style.display = 'none';
+  showToast('已切换为拍照模式');
+}
+
+// 也支持点击整个 overlay 区域（仅实时模式有效区域）
+startOverlay.addEventListener('click', (e) => {
+  if (e.target === startOverlay) {
+    if (photoMode) return; // 拍照模式不自动触发
+    startBtn.click();
+  }
+});
+
+// ─────────────────────────────────────
+// 启动
+// ─────────────────────────────────────
+boot();
+</script>
+</body>
+</html>

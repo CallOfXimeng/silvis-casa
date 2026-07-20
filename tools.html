@@ -1,0 +1,80 @@
+---
+layout: default
+title: "工具"
+permalink: /tools/
+---
+
+<style>
+  .tools-container {
+    max-width: 800px;
+    margin: 60px auto;
+    padding: 0 20px;
+    text-align: center;
+  }
+
+  .tools-container h1 {
+    font-size: 2rem;
+    margin-bottom: 40px;
+    color: #333;
+  }
+
+  .tool-card {
+    display: inline-block;
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px 48px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .tool-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+
+  .tool-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  .tool-desc {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 24px;
+  }
+
+  .tool-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: #1a1a1a;
+    color: #e0c080;
+    border: 1px solid #444;
+    border-radius: 8px;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .tool-btn:hover {
+    background: #2a2a2a;
+    border-color: #e0c080;
+  }
+</style>
+
+<div class="tools-container">
+  <h1>🛠️ 工具</h1>
+
+  <div class="tool-card">
+    <div class="tool-icon">🎞️</div>
+    <div class="tool-name">黑白胶片预览</div>
+    <div class="tool-desc">上传彩色照片，模拟黑白胶片冲洗效果</div>
+    <a class="tool-btn" href="{{ '/playground/bw-film-preview.html' | relative_url }}">打开工具 →</a>
+  </div>
+</div>
