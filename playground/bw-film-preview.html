@@ -38,6 +38,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
 
   video {
@@ -47,7 +48,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* 隐藏原始彩色视频，只显示 canvas */
     opacity: 0;
   }
 
@@ -59,6 +59,11 @@
     height: 100%;
     object-fit: cover;
     image-rendering: auto;
+    transition: transform 0.2s ease-out;
+    transform-origin: center center;
+  }
+  canvas.zoomed {
+    transform: scale(2);
   }
 
   /* ── top bar ── */
@@ -76,6 +81,12 @@
     background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
   }
 
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .title {
     font-size: 14px;
     font-weight: 600;
@@ -91,7 +102,7 @@
     border-radius: 20px;
   }
 
-  .switch-lens-btn {
+  .zoom-btn {
     font-size: 11px;
     color: var(--accent);
     background: rgba(255,255,255,0.08);
@@ -100,11 +111,17 @@
     border-radius: 20px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
   }
-  .switch-lens-btn:active {
+  .zoom-btn:active {
     background: rgba(255,255,255,0.2);
   }
-  .switch-lens-btn.hidden {
+  .zoom-btn.active {
+    background: rgba(224,192,128,0.25);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .zoom-btn.hidden {
     display: none;
   }
 
@@ -119,21 +136,21 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid rgba(255,255,255,0.08);
-    padding: 16px 16px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding: 14px 16px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
 
   /* ── contrast quick picks ── */
   .contrast-row {
     display: flex;
     gap: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
 
   .contrast-btn {
     flex: 1;
-    padding: 8px 0;
-    font-size: 13px;
+    padding: 7px 0;
+    font-size: 12px;
     font-weight: 500;
     color: #aaa;
     background: rgba(255,255,255,0.06);
@@ -153,12 +170,79 @@
     background: rgba(255,255,255,0.15);
   }
 
+  /* ── EV row ── */
+  .ev-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ev-row .slider-item {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .ev-label {
+    font-size: 11px;
+    color: #999;
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .ev-value {
+    font-size: 11px;
+    color: var(--accent);
+    width: 44px;
+    text-align: left;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .meter-btn {
+    font-size: 11px;
+    color: #999;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .meter-btn:active {
+    background: rgba(255,255,255,0.15);
+  }
+  .meter-btn.active {
+    color: #fff;
+    background: rgba(255,180,80,0.25);
+    border-color: #ffb450;
+  }
+
+  /* spot meter reticle */
+  .spot-reticle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 50;
+    width: 44px;
+    height: 44px;
+    border: 2px solid #ffb450;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px rgba(255,180,80,0.5), inset 0 0 8px rgba(255,180,80,0.25);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .spot-reticle.show {
+    opacity: 1;
+  }
+
   /* ── sliders ── */
   .slider-group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .slider-item {
@@ -333,13 +417,14 @@
 </head>
 <body>
 
+<!-- 点测光准星 -->
+<div class="spot-reticle" id="spotReticle"></div>
+
 <!-- ── 启动遮罩 ── -->
 <div class="start-overlay" id="startOverlay">
-  <!-- 安全上下文：实时预览 -->
   <button class="start-btn live-only" id="startBtn">📷 启动相机</button>
   <span class="start-hint live-only" id="startHint">点击以授权摄像头访问</span>
 
-  <!-- 非安全上下文：拍照模式 -->
   <span class="start-hint photo-only" id="photoHint">
     实时预览需 HTTPS。当前为 <strong id="currentProto"></strong> 协议，使用拍照模式。
   </span>
@@ -349,7 +434,7 @@
   <span class="start-error" id="startError"></span>
 </div>
 
-<!-- 隐藏的文件输入，用于拍照/选图 -->
+<!-- 隐藏的文件输入 -->
 <input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="galleryInput" accept="image/*" style="display:none">
 
@@ -359,9 +444,13 @@
 </div>
 
 <div class="top-bar">
-  <span class="title" id="titleBar">黑白负片预览</span>
-  <button class="switch-lens-btn" id="switchLens" onclick="switchLens()">切换镜头</button>
-  <span class="lens-badge" id="lensLabel">标准</span>
+  <div class="top-bar-left">
+    <span class="title" id="titleBar">黑白负片预览</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="zoom-btn" id="zoomBtn" onclick="toggleZoom()">🔍 2x</button>
+    <span class="lens-badge" id="lensLabel">标准</span>
+  </div>
 </div>
 
 <div class="panel">
@@ -371,6 +460,16 @@
     <button class="contrast-btn" data-preset="low">低</button>
     <button class="contrast-btn" data-preset="medium">中</button>
     <button class="contrast-btn" data-preset="high">高</button>
+  </div>
+
+  <!-- EV 曝光补偿 + 点测光 -->
+  <div class="ev-row">
+    <span class="ev-label">EV</span>
+    <div class="slider-item">
+      <input type="range" id="ev" min="-30" max="30" value="0" step="1">
+    </div>
+    <span class="ev-value" id="evVal">±0.0</span>
+    <button class="meter-btn" id="meterBtn" onclick="toggleSpotMeter()">⊙ 点测光</button>
   </div>
 
   <!-- 滑块 -->
@@ -406,22 +505,24 @@
 // state
 // ─────────────────────────────────────
 let stream = null;
-let currentDeviceId = null;
-let cameras = [];
-let activeLensIndex = 0;
 let frozen = false;
-let frozenFrame = null; // ImageData snapshot (live mode only)
+let frozenFrame = null;
 let animationId = null;
 
+// zoom
+let zoomed = false;
+
 // photo mode
-let photoMode = false;           // true = 拍照模式，false = 实时预览
-let loadedImage = null;          // HTMLImageElement，已加载的照片
-let photoImageData = null;       // ImageData，照片的原始像素缓存（用于调参重绘）
+let photoMode = false;
+let loadedImage = null;
+let photoImageData = null;
 
 // sliders
-let contrastVal = 100;    // 50–200, 100 = neutral
-let highlightsVal = 0;    // -100..100
-let shadowsVal = 0;       // -100..100
+let contrastVal = 100;
+let highlightsVal = 0;
+let shadowsVal = 0;
+let evVal = 0;              // EV compensation: -3.0 .. +3.0 (stored as slider int * 10)
+let spotMeterActive = false;
 
 // DOM
 const video = document.getElementById('video');
@@ -431,14 +532,18 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 const contrastSlider = document.getElementById('contrast');
 const highlightsSlider = document.getElementById('highlights');
 const shadowsSlider = document.getElementById('shadows');
+const evSlider = document.getElementById('ev');
 const contrastValEl = document.getElementById('contrastVal');
 const highlightsValEl = document.getElementById('highlightsVal');
 const shadowsValEl = document.getElementById('shadowsVal');
+const evValEl = document.getElementById('evVal');
 const freezeBtn = document.getElementById('freezeBtn');
+const zoomBtn = document.getElementById('zoomBtn');
+const meterBtn = document.getElementById('meterBtn');
 const lensLabel = document.getElementById('lensLabel');
-const switchLensBtn = document.getElementById('switchLens');
 const titleBar = document.getElementById('titleBar');
 const toast = document.getElementById('toast');
+const spotReticle = document.getElementById('spotReticle');
 
 const startOverlay = document.getElementById('startOverlay');
 const startBtn = document.getElementById('startBtn');
@@ -465,7 +570,23 @@ function showStartError(msg) {
 }
 
 // ─────────────────────────────────────
-// 检测是否安全上下文（HTTPS / localhost）
+// 缩放切换
+// ─────────────────────────────────────
+function toggleZoom() {
+  zoomed = !zoomed;
+  if (zoomed) {
+    canvas.classList.add('zoomed');
+    zoomBtn.textContent = '🔍 1x';
+    zoomBtn.classList.add('active');
+  } else {
+    canvas.classList.remove('zoomed');
+    zoomBtn.textContent = '🔍 2x';
+    zoomBtn.classList.remove('active');
+  }
+}
+
+// ─────────────────────────────────────
+// 检测安全上下文
 // ─────────────────────────────────────
 function isSecureContext() {
   if (window.isSecureContext) return true;
@@ -475,64 +596,136 @@ function isSecureContext() {
 }
 
 // ─────────────────────────────────────
-// camera enumeration（在已有权限后调用）
+// 点测光
 // ─────────────────────────────────────
-async function enumerateCameras() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    cameras = devices.filter(d => d.kind === 'videoinput');
-    if (cameras.length === 0) {
-      cameras = [{ deviceId: 'default', label: '默认镜头' }];
-    }
-    console.log('📷 cameras:', cameras.map(c => c.label));
-  } catch (e) {
-    console.warn('enumerateDevices failed:', e);
-    cameras = [{ deviceId: 'default', label: '默认镜头' }];
-  }
-
-  // try to identify telephoto by label keywords
-  let teleIdx = -1;
-  let wideIdx = -1;
-  let ultraWideIdx = -1;
-  let mainIdx = -1;
-
-  cameras.forEach((c, i) => {
-    const label = c.label.toLowerCase();
-    if (label.includes('tele') || label.includes('长焦')) {
-      teleIdx = i;
-    } else if (label.includes('ultra') || label.includes('超广')) {
-      ultraWideIdx = i;
-    } else if (label.includes('wide') || label.includes('广角')) {
-      wideIdx = i;
-    } else if (label.includes('back') || label.includes('后置') || label.includes('后摄')) {
-      if (mainIdx === -1) mainIdx = i;
-    }
-  });
-
-  // prefer telephoto, then main back camera, then environment-facing
-  if (teleIdx >= 0) {
-    activeLensIndex = teleIdx;
-  } else if (wideIdx >= 0) {
-    activeLensIndex = wideIdx;
-  } else if (mainIdx >= 0) {
-    activeLensIndex = mainIdx;
+function toggleSpotMeter() {
+  spotMeterActive = !spotMeterActive;
+  if (spotMeterActive) {
+    meterBtn.textContent = '⊙ 测光中…';
+    meterBtn.classList.add('active');
+    showToast('点击画面中想要正确曝光的位置');
   } else {
-    const envIdx = cameras.findIndex(c =>
-      c.label.toLowerCase().includes('back') ||
-      c.label.toLowerCase().includes('environment') ||
-      c.label.toLowerCase().includes('后')
-    );
-    activeLensIndex = envIdx >= 0 ? envIdx : 0;
+    meterBtn.textContent = '⊙ 点测光';
+    meterBtn.classList.remove('active');
+    spotReticle.classList.remove('show');
   }
-
-  console.log('🎯 selected index:', activeLensIndex, cameras[activeLensIndex]?.label);
 }
 
+function getCanvasContentRect() {
+  const canvasRect = canvas.getBoundingClientRect();
+  const canvasAspect = canvas.width / canvas.height;
+  const viewportAspect = canvasRect.width / canvasRect.height;
+
+  let contentWidth, contentHeight, offsetX, offsetY;
+  if (viewportAspect > canvasAspect) {
+    contentHeight = canvasRect.height;
+    contentWidth = contentHeight * canvasAspect;
+    offsetX = (canvasRect.width - contentWidth) / 2;
+    offsetY = 0;
+  } else {
+    contentWidth = canvasRect.width;
+    contentHeight = contentWidth / canvasAspect;
+    offsetX = 0;
+    offsetY = (canvasRect.height - contentHeight) / 2;
+  }
+  return { contentWidth, contentHeight, offsetX, offsetY };
+}
+
+function sampleLuminanceAt(cx, cy) {
+  // Read from source: photoImageData for photo mode, video frame for live mode
+  let r, g, b;
+  if (photoMode && photoImageData) {
+    const idx = (Math.floor(cy) * photoImageData.width + Math.floor(cx)) * 4;
+    r = photoImageData.data[idx];
+    g = photoImageData.data[idx + 1];
+    b = photoImageData.data[idx + 2];
+  } else if (!photoMode && video.videoWidth) {
+    // Sample from a small region around the point for better accuracy
+    const sampleSize = 3;
+    let sumR = 0, sumG = 0, sumB = 0, count = 0;
+    for (let dy = -sampleSize; dy <= sampleSize; dy++) {
+      for (let dx = -sampleSize; dx <= sampleSize; dx++) {
+        const sx = Math.floor(cx + dx);
+        const sy = Math.floor(cy + dy);
+        if (sx < 0 || sy < 0 || sx >= canvas.width || sy >= canvas.height) continue;
+        // Draw current video frame to get pixel
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const pixel = ctx.getImageData(sx, sy, 1, 1).data;
+        sumR += pixel[0]; sumG += pixel[1]; sumB += pixel[2];
+        count++;
+      }
+    }
+    if (count === 0) return null;
+    r = sumR / count; g = sumG / count; b = sumB / count;
+  } else {
+    return null;
+  }
+
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+canvas.addEventListener('click', (e) => {
+  if (!spotMeterActive) return;
+
+  const rect = getCanvasContentRect();
+  const scaleX = canvas.width / rect.contentWidth;
+  const scaleY = canvas.height / rect.contentHeight;
+  const cx = (e.clientX - rect.offsetX) * scaleX;
+  const cy = (e.clientY - rect.offsetY) * scaleY;
+
+  if (cx < 0 || cy < 0 || cx >= canvas.width || cy >= canvas.height) {
+    showToast('点击位置超出画面范围');
+    return;
+  }
+
+  const lum = sampleLuminanceAt(cx, cy);
+  if (lum === null) {
+    showToast('无法读取该点亮度');
+    return;
+  }
+
+  // Calculate EV to make this point 18% gray (≈46 in linear, but we target middle gray 127)
+  // We want: 255 - lum * 2^EV = 127  →  lum * 2^EV = 128  →  EV = log2(128 / lum)
+  const targetGray = 128;
+  let ev = Math.log2(targetGray / Math.max(lum, 1));
+  ev = clamp(ev, -3, 3);
+
+  // Set EV slider and state
+  evVal = Math.round(ev * 10);
+  evSlider.value = evVal;
+  updateEvDisplay();
+
+  console.log(`🎯 spot meter: lum=${lum.toFixed(1)}, EV=${(evVal/10).toFixed(2)}`);
+
+  // If photo mode, re-render immediately
+  if (photoMode) renderPhotoFrame();
+
+  // Show visual feedback
+  spotReticle.style.left = e.clientX + 'px';
+  spotReticle.style.top = e.clientY + 'px';
+  spotReticle.classList.add('show');
+
+  // Exit spot meter mode
+  spotMeterActive = false;
+  meterBtn.textContent = '⊙ 点测光';
+  meterBtn.classList.remove('active');
+  setTimeout(() => spotReticle.classList.remove('show'), 800);
+
+  showToast(`点测光: EV ${(evVal/10).toFixed(2)}`);
+});
+
+// Also show reticle on pointer move when spot metering
+canvas.addEventListener('pointermove', (e) => {
+  if (!spotMeterActive) return;
+  spotReticle.style.left = e.clientX + 'px';
+  spotReticle.style.top = e.clientY + 'px';
+  spotReticle.classList.add('show');
+});
+
 // ─────────────────────────────────────
-// start camera (live mode only)
+// start camera
 // ─────────────────────────────────────
-async function startCamera(deviceId) {
-  // stop old stream
+async function startCamera() {
   if (stream) {
     stream.getTracks().forEach(t => t.stop());
     stream = null;
@@ -547,46 +740,27 @@ async function startCamera(deviceId) {
     audio: false,
   };
 
-  if (deviceId) {
-    constraints.video.deviceId = { exact: deviceId };
-  }
-
   try {
     stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await video.play();
 
-    // Try to apply zoom via track capabilities
+    video.addEventListener('loadedmetadata', () => {
+      resizeCanvas();
+    }, { once: true });
+
+    // Try to detect if we have a telephoto lens
     const track = stream.getVideoTracks()[0];
     if (track.getCapabilities) {
       const caps = track.getCapabilities();
-      console.log('🔍 track capabilities:', caps);
-      if (caps.zoom) {
-        const maxZoom = caps.zoom.max;
-        const targetZoom = Math.min(maxZoom, Math.max(maxZoom * 0.7, 2.5));
-        try {
-          await track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-          console.log('🔭 zoom applied:', targetZoom);
-        } catch (e) {
-          console.log('⚠️ zoom constrain failed:', e.message);
-        }
-      }
       if (caps.zoom && caps.zoom.max >= 3) {
         lensLabel.textContent = '长焦';
       }
     }
 
-    video.srcObject = stream;
-    await video.play();
-
-    // set canvas size once video metadata loads
-    video.addEventListener('loadedmetadata', () => {
-      resizeCanvas();
-    }, { once: true });
-
-    updateLensLabel();
     return true;
   } catch (e) {
     console.error('camera error:', e);
-    // fallback: basic constraints
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
@@ -601,57 +775,6 @@ async function startCamera(deviceId) {
       return false;
     }
   }
-}
-
-function updateLensLabel() {
-  if (photoMode) { lensLabel.textContent = '照片'; return; }
-  const cam = cameras[activeLensIndex];
-  if (!cam) { lensLabel.textContent = '标准'; return; }
-  const label = cam.label.toLowerCase();
-  if (label.includes('tele') || label.includes('长焦')) {
-    lensLabel.textContent = '长焦';
-  } else if (label.includes('ultra') || label.includes('超广')) {
-    lensLabel.textContent = '超广角';
-  } else if (label.includes('wide') || label.includes('广角')) {
-    lensLabel.textContent = '广角';
-  } else if (label.includes('front') || label.includes('前') || label.includes('自拍')) {
-    lensLabel.textContent = '前置';
-  } else {
-    lensLabel.textContent = '标准';
-  }
-}
-
-async function switchLens() {
-  if (photoMode) {
-    showToast('拍照模式不支持切换镜头');
-    return;
-  }
-  if (cameras.length <= 1) {
-    showToast('仅有一个镜头');
-    return;
-  }
-  // cycle through rear cameras
-  const rearIndices = [];
-  cameras.forEach((c, i) => {
-    const label = c.label.toLowerCase();
-    // prefer back cameras, skip front
-    if (!label.includes('front') && !label.includes('前') && !label.includes('自拍')) {
-      rearIndices.push(i);
-    }
-  });
-  if (rearIndices.length <= 1 && cameras.length > 1) {
-    // just cycle all
-    activeLensIndex = (activeLensIndex + 1) % cameras.length;
-  } else if (rearIndices.length > 0) {
-    const curInRear = rearIndices.indexOf(activeLensIndex);
-    activeLensIndex = rearIndices[(curInRear + 1) % rearIndices.length];
-  } else {
-    activeLensIndex = (activeLensIndex + 1) % cameras.length;
-  }
-
-  await startCamera(cameras[activeLensIndex].deviceId);
-  updateLensLabel();
-  showToast('已切换: ' + (cameras[activeLensIndex]?.label || '镜头 ' + activeLensIndex));
 }
 
 // ─────────────────────────────────────
@@ -676,7 +799,6 @@ function resizeCanvas() {
 // image processing pipeline
 // ─────────────────────────────────────
 
-// Luminance weights for perceptually accurate grayscale
 const RW = 0.299;
 const GW = 0.587;
 const BW = 0.114;
@@ -692,16 +814,17 @@ function sCurve(t, contrast) {
 }
 
 function processFrame(srcData, dstData, width, height) {
-  const contrastFactor = contrastVal / 100;  // 0.5 .. 2.0
-  const highlightAdj = highlightsVal / 100;  // -1.0 .. 1.0
-  const shadowAdj = shadowsVal / 100;        // -1.0 .. 1.0
+  const contrastFactor = contrastVal / 100;
+  const highlightAdj = highlightsVal / 100;
+  const shadowAdj = shadowsVal / 100;
+  const evFactor = Math.pow(2, evVal / 10);  // EV in stops: +1 EV = ×2 brightness
 
   const total = width * height;
 
-  // First pass: grayscale + invert
+  // First pass: grayscale + EV + invert
   for (let i = 0; i < total; i++) {
-    const si = i * 4; // source RGBA offset
-    const di = si;    // dest RGBA offset (same layout)
+    const si = i * 4;
+    const di = si;
 
     const r = srcData[si];
     const g = srcData[si + 1];
@@ -709,6 +832,9 @@ function processFrame(srcData, dstData, width, height) {
 
     // Luminance grayscale
     let gray = RW * r + GW * g + BW * b;
+
+    // Apply EV compensation (exposure shift before inversion)
+    gray = clamp(gray * evFactor, 0, 255);
 
     // Invert (negative film effect)
     gray = 255 - gray;
@@ -719,12 +845,11 @@ function processFrame(srcData, dstData, width, height) {
     dstData[di + 3] = 255;
   }
 
-  // Second pass: contrast + highlight/shadow (operate on the 0-255 grayscale)
+  // Second pass: contrast + highlight/shadow
   for (let i = 0; i < total; i++) {
     const di = i * 4;
-    let v = dstData[di] / 255; // normalize to 0..1
+    let v = dstData[di] / 255;
 
-    // Apply highlight/shadow adjustments before contrast
     if (highlightAdj !== 0) {
       const hFactor = highlightAdj > 0
         ? (1 - v) * highlightAdj * 0.5
@@ -739,7 +864,6 @@ function processFrame(srcData, dstData, width, height) {
       v = clamp(v + sFactor * (v < 0.5 ? 1 : (1 - v) * 2), 0, 1);
     }
 
-    // Contrast
     if (contrastFactor !== 1) {
       v = sCurve(v, contrastFactor);
     }
@@ -752,7 +876,7 @@ function processFrame(srcData, dstData, width, height) {
 }
 
 // ─────────────────────────────────────
-// photo mode: render a single frame (called on slider change / initial load)
+// photo mode: render single frame
 // ─────────────────────────────────────
 function renderPhotoFrame() {
   if (!photoMode || !photoImageData) return;
@@ -764,12 +888,10 @@ function renderPhotoFrame() {
 }
 
 // ─────────────────────────────────────
-// render loop (live mode) / one-shot (photo mode)
+// render loop
 // ─────────────────────────────────────
 function render() {
   if (photoMode) {
-    // photo mode: 不需要连续渲染，只响应 slider 变化
-    // 但首次进入时确保已渲染
     if (photoImageData) {
       renderPhotoFrame();
     }
@@ -777,7 +899,6 @@ function render() {
     return;
   }
 
-  // live mode
   if (!video.videoWidth || video.paused) {
     animationId = requestAnimationFrame(render);
     return;
@@ -815,7 +936,6 @@ function render() {
 // ─────────────────────────────────────
 function toggleFreeze() {
   if (photoMode) {
-    // 拍照模式：冻结/解冻就是"重拍"
     showToast('拍照模式下参数可随时调整，点击下方按钮重新拍照');
     return;
   }
@@ -855,7 +975,6 @@ function applyPreset(name) {
     b.classList.toggle('active', b.dataset.preset === name);
   });
 
-  // 拍照模式：立即重渲染
   if (photoMode) renderPhotoFrame();
 }
 
@@ -863,12 +982,23 @@ function syncSlidersToState() {
   contrastSlider.value = contrastVal;
   highlightsSlider.value = highlightsVal;
   shadowsSlider.value = shadowsVal;
+  evSlider.value = evVal;
   contrastValEl.textContent = (contrastVal / 100).toFixed(2);
   highlightsValEl.textContent = highlightsVal;
   shadowsValEl.textContent = shadowsVal;
+  updateEvDisplay();
+}
+
+function updateEvDisplay() {
+  const ev = evVal / 10;
+  const sign = ev >= 0 ? '+' : '';
+  evValEl.textContent = sign + ev.toFixed(1);
 }
 
 function resetAll() {
+  evVal = 0;
+  evSlider.value = 0;
+  updateEvDisplay();
   applyPreset('normal');
   showToast('参数已重置');
 }
@@ -876,6 +1006,12 @@ function resetAll() {
 // ─────────────────────────────────────
 // slider events
 // ─────────────────────────────────────
+evSlider.addEventListener('input', () => {
+  evVal = parseInt(evSlider.value);
+  updateEvDisplay();
+  if (photoMode) renderPhotoFrame();
+});
+
 contrastSlider.addEventListener('input', () => {
   contrastVal = parseInt(contrastSlider.value);
   contrastValEl.textContent = (contrastVal / 100).toFixed(2);
@@ -897,9 +1033,7 @@ shadowsSlider.addEventListener('input', () => {
   if (photoMode) renderPhotoFrame();
 });
 
-// ─────────────────────────────────────
-// preset button clicks
-// ─────────────────────────────────────
+// preset buttons
 document.getElementById('contrastBtns').addEventListener('click', (e) => {
   const btn = e.target.closest('.contrast-btn');
   if (!btn) return;
@@ -938,16 +1072,13 @@ function handleImageFile(file) {
       canvas.style.width = '100%';
       canvas.style.height = '100%';
 
-      // 绘制原始照片到 canvas，提取像素数据
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       photoImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
       console.log(`📸 photo loaded: ${img.naturalWidth}x${img.naturalHeight}`);
 
-      // 应用黑白滤镜并显示
       renderPhotoFrame();
 
-      // 隐藏遮罩
       startOverlay.classList.add('hidden');
       showToast('照片已加载 — 调整下方参数查看效果');
     };
@@ -963,31 +1094,25 @@ function initPhotoMode() {
   photoMode = true;
   document.body.classList.add('photo-mode');
 
-  // 更新 UI
   titleBar.textContent = '黑白负片预览 · 拍照模式';
-  switchLensBtn.classList.add('hidden');
+  zoomBtn.classList.add('hidden');
   lensLabel.textContent = '照片';
   freezeBtn.textContent = '📸 重新拍照';
 
-  // 显示协议信息
   currentProto.textContent = location.protocol;
 
-  // 绑定拍照按钮 → 触发隐藏的 file input
   captureBtn.addEventListener('click', () => {
     captureInput.click();
   });
 
-  // 绑定选图按钮
   galleryBtn.addEventListener('click', () => {
     galleryInput.click();
   });
 
-  // 绑定 file input 的 change 事件
   captureInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files[0]) {
       handleImageFile(e.target.files[0]);
     }
-    // 清空 input，允许重复选同一文件
     e.target.value = '';
   });
 
@@ -998,80 +1123,58 @@ function initPhotoMode() {
     e.target.value = '';
   });
 
-  // 修改 freeze 按钮行为：重新拍照
   freezeBtn.onclick = () => {
     captureInput.click();
   };
 
-  // 初始状态：显示拍照/选图按钮，面板控件可用
   syncSlidersToState();
 }
 
 // ─────────────────────────────────────
-// boot — 页面初始化入口
+// boot
 // ─────────────────────────────────────
 function boot() {
-  if (isSecureContext()) {
-    // 安全上下文：显示实时预览按钮，等用户点击
-    // 不需要额外操作，live-only 按钮默认可见
-  } else {
-    // 非安全上下文：切换到拍照模式
+  if (!isSecureContext()) {
     initPhotoMode();
   }
 }
 
 // ─────────────────────────────────────
-// 绑定启动按钮（用户手势触发，仅实时模式）
+// start button (live mode)
 // ─────────────────────────────────────
 startBtn.addEventListener('click', () => {
   if (photoMode) return;
 
   (async () => {
-    // 检查 mediaDevices 是否可用
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       showStartError('⚠️ 当前浏览器不支持摄像头访问，请使用拍照模式');
       showPhotoFallback();
       return;
     }
 
-    // 请求摄像头
     startBtn.textContent = '⏳ 启动中...';
     startBtn.disabled = true;
 
-    const ok = await startCamera(null);
+    const ok = await startCamera();
 
     if (!ok) {
-      // 实时摄像头失败 → 自动降级到拍照模式
       console.log('⚠️ 实时摄像头启动失败，降级到拍照模式');
       showPhotoFallback();
       return;
     }
 
-    // 枚举所有设备
-    await enumerateCameras();
-
-    // 如果有更好的镜头切换到它
-    const bestDeviceId = cameras[activeLensIndex]?.deviceId;
-    if (bestDeviceId) {
-      await startCamera(bestDeviceId);
-    }
-
-    // 隐藏启动遮罩，显示取景界面
     startOverlay.classList.add('hidden');
 
-    // 启动渲染
     syncSlidersToState();
     render();
 
     console.log('✅ camera ready');
   })().catch(err => {
     console.error('boot error:', err);
-    console.log('⚠️ 启动异常，降级到拍照模式');
     showPhotoFallback();
   });
 });
 
-// 实时预览失败时自动切换到拍照模式
 function showPhotoFallback() {
   initPhotoMode();
   startError.classList.remove('show');
@@ -1079,10 +1182,9 @@ function showPhotoFallback() {
   showToast('已切换为拍照模式');
 }
 
-// 也支持点击整个 overlay 区域（仅实时模式有效区域）
 startOverlay.addEventListener('click', (e) => {
   if (e.target === startOverlay) {
-    if (photoMode) return; // 拍照模式不自动触发
+    if (photoMode) return;
     startBtn.click();
   }
 });
