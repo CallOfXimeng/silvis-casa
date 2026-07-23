@@ -523,6 +523,9 @@ let highlightsVal = 0;
 let shadowsVal = 0;
 let evVal = 0;              // EV compensation: -3.0 .. +3.0 (stored as slider int * 10)
 let spotMeterActive = false;
+let evHardware = false;      // true if camera supports exposureCompensation
+let videoTrack = null;       // active MediaStreamTrack for hardware EV control
+let evPending = false;       // debounce flag for hardware EV apply
 
 // DOM
 const video = document.getElementById('video');
@@ -586,6 +589,27 @@ function toggleZoom() {
 }
 
 // ─────────────────────────────────────
+// 硬件 EV 控制 — 直接控制摄像头传感器曝光（前期）
+// 仅在实时模式且设备支持 exposureCompensation 时生效
+// ─────────────────────────────────────
+async function applyHardwareEv(ev) {
+  if (!evHardware || !videoTrack) return;
+  if (evPending) return;
+  evPending = true;
+  try {
+    await videoTrack.applyConstraints({
+      advanced: [{ exposureCompensation: ev }]
+    });
+    console.log('☀️ hardware EV set:', ev.toFixed(2));
+  } catch (e) {
+    console.warn('⚠️ hardware EV apply failed:', e.message);
+    evHardware = false;
+    updateEvDisplay();
+  }
+  evPending = false;
+}
+
+// ─────────────────────────────────────
 // 检测安全上下文
 // ─────────────────────────────────────
 function isSecureContext() {
@@ -632,7 +656,6 @@ function getCanvasContentRect() {
 }
 
 function sampleLuminanceAt(cx, cy) {
-  // Read from source: photoImageData for photo mode, video frame for live mode
   let r, g, b;
   if (photoMode && photoImageData) {
     const idx = (Math.floor(cy) * photoImageData.width + Math.floor(cx)) * 4;
@@ -640,7 +663,6 @@ function sampleLuminanceAt(cx, cy) {
     g = photoImageData.data[idx + 1];
     b = photoImageData.data[idx + 2];
   } else if (!photoMode && video.videoWidth) {
-    // Sample from a small region around the point for better accuracy
     const sampleSize = 3;
     let sumR = 0, sumG = 0, sumB = 0, count = 0;
     for (let dy = -sampleSize; dy <= sampleSize; dy++) {
@@ -648,7 +670,6 @@ function sampleLuminanceAt(cx, cy) {
         const sx = Math.floor(cx + dx);
         const sy = Math.floor(cy + dy);
         if (sx < 0 || sy < 0 || sx >= canvas.width || sy >= canvas.height) continue;
-        // Draw current video frame to get pixel
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const pixel = ctx.getImageData(sx, sy, 1, 1).data;
         sumR += pixel[0]; sumG += pixel[1]; sumB += pixel[2];
@@ -684,37 +705,34 @@ canvas.addEventListener('click', (e) => {
     return;
   }
 
-  // Calculate EV to make this point 18% gray (≈46 in linear, but we target middle gray 127)
-  // We want: 255 - lum * 2^EV = 127  →  lum * 2^EV = 128  →  EV = log2(128 / lum)
+  // Target 18% gray: EV = log2(128 / lum)
   const targetGray = 128;
   let ev = Math.log2(targetGray / Math.max(lum, 1));
   ev = clamp(ev, -3, 3);
 
-  // Set EV slider and state
   evVal = Math.round(ev * 10);
   evSlider.value = evVal;
   updateEvDisplay();
 
-  console.log(`🎯 spot meter: lum=${lum.toFixed(1)}, EV=${(evVal/10).toFixed(2)}`);
+  // Live mode: apply to hardware sensor immediately
+  if (!photoMode && evHardware) applyHardwareEv(evVal / 10);
 
-  // If photo mode, re-render immediately
+  console.log('🎯 spot meter: lum=' + lum.toFixed(1) + ', EV=' + (evVal/10).toFixed(2));
+
   if (photoMode) renderPhotoFrame();
 
-  // Show visual feedback
   spotReticle.style.left = e.clientX + 'px';
   spotReticle.style.top = e.clientY + 'px';
   spotReticle.classList.add('show');
 
-  // Exit spot meter mode
   spotMeterActive = false;
   meterBtn.textContent = '⊙ 点测光';
   meterBtn.classList.remove('active');
   setTimeout(() => spotReticle.classList.remove('show'), 800);
 
-  showToast(`点测光: EV ${(evVal/10).toFixed(2)}`);
+  showToast('点测光: EV ' + (evVal/10).toFixed(2));
 });
 
-// Also show reticle on pointer move when spot metering
 canvas.addEventListener('pointermove', (e) => {
   if (!spotMeterActive) return;
   spotReticle.style.left = e.clientX + 'px';
@@ -723,13 +741,15 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 // ─────────────────────────────────────
-// start camera
+// start camera — 检测硬件 EV 并注册 track
 // ─────────────────────────────────────
 async function startCamera() {
   if (stream) {
     stream.getTracks().forEach(t => t.stop());
     stream = null;
   }
+  videoTrack = null;
+  evHardware = false;
 
   const constraints = {
     video: {
@@ -749,10 +769,27 @@ async function startCamera() {
       resizeCanvas();
     }, { once: true });
 
-    // Try to detect if we have a telephoto lens
+    // Detect hardware exposure compensation
     const track = stream.getVideoTracks()[0];
+    videoTrack = track;
     if (track.getCapabilities) {
       const caps = track.getCapabilities();
+      console.log('🔍 track capabilities:', JSON.stringify(caps));
+
+      if (caps.exposureCompensation) {
+        const min = caps.exposureCompensation.min ?? -3;
+        const max = caps.exposureCompensation.max ?? 3;
+        const step = caps.exposureCompensation.step ?? 0.1;
+        console.log('☀️ hardware EV supported: ' + min + '..' + max + ' step ' + step);
+        evHardware = true;
+        evSlider.min = Math.max(-30, Math.round(min * 10));
+        evSlider.max = Math.min(30, Math.round(max * 10));
+        evSlider.step = Math.max(1, Math.round(step * 10));
+        applyHardwareEv(evVal / 10);
+      } else {
+        console.log('⚠️ hardware EV not supported — using software fallback (photo mode only)');
+      }
+
       if (caps.zoom && caps.zoom.max >= 3) {
         lensLabel.textContent = '长焦';
       }
@@ -767,6 +804,8 @@ async function startCamera() {
         audio: false,
       });
       video.srcObject = stream;
+      videoTrack = stream.getVideoTracks()[0];
+      evHardware = false;
       await video.play();
       video.addEventListener('loadedmetadata', () => resizeCanvas(), { once: true });
       return true;
@@ -792,11 +831,13 @@ function resizeCanvas() {
   }
   canvas.style.width = '100%';
   canvas.style.height = '100%';
-  console.log(`🖼️ canvas: ${canvas.width}x${canvas.height}`);
+  console.log('🖼️ canvas: ' + canvas.width + 'x' + canvas.height);
 }
 
 // ─────────────────────────────────────
 // image processing pipeline
+// NOTE: EV is applied as HARDWARE exposure control in live mode.
+// Software EV factor only used in photo mode (static images).
 // ─────────────────────────────────────
 
 const RW = 0.299;
@@ -817,11 +858,12 @@ function processFrame(srcData, dstData, width, height) {
   const contrastFactor = contrastVal / 100;
   const highlightAdj = highlightsVal / 100;
   const shadowAdj = shadowsVal / 100;
-  const evFactor = Math.pow(2, evVal / 10);  // EV in stops: +1 EV = ×2 brightness
+  // Software EV only for photo mode; live mode uses hardware sensor EV
+  const evFactor = photoMode ? Math.pow(2, evVal / 10) : 1.0;
 
   const total = width * height;
 
-  // First pass: grayscale + EV + invert
+  // First pass: grayscale + EV (photo mode) + invert
   for (let i = 0; i < total; i++) {
     const si = i * 4;
     const di = si;
@@ -830,10 +872,9 @@ function processFrame(srcData, dstData, width, height) {
     const g = srcData[si + 1];
     const b = srcData[si + 2];
 
-    // Luminance grayscale
     let gray = RW * r + GW * g + BW * b;
 
-    // Apply EV compensation (exposure shift before inversion)
+    // Software EV: only active in photo mode (1.0 in live mode)
     gray = clamp(gray * evFactor, 0, 255);
 
     // Invert (negative film effect)
@@ -992,12 +1033,16 @@ function syncSlidersToState() {
 function updateEvDisplay() {
   const ev = evVal / 10;
   const sign = ev >= 0 ? '+' : '';
-  evValEl.textContent = sign + ev.toFixed(1);
+  // Show HW badge if hardware EV is active, SW if software (photo) mode
+  const mode = (!photoMode && evHardware) ? ' HW' : (photoMode ? ' SW' : '');
+  evValEl.textContent = sign + ev.toFixed(1) + mode;
 }
 
 function resetAll() {
   evVal = 0;
   evSlider.value = 0;
+  // Reset hardware EV too
+  if (!photoMode && evHardware) applyHardwareEv(0);
   updateEvDisplay();
   applyPreset('normal');
   showToast('参数已重置');
@@ -1009,7 +1054,13 @@ function resetAll() {
 evSlider.addEventListener('input', () => {
   evVal = parseInt(evSlider.value);
   updateEvDisplay();
-  if (photoMode) renderPhotoFrame();
+  // Live mode: apply to hardware sensor (real exposure)
+  // Photo mode: re-render with software EV
+  if (!photoMode && evHardware) {
+    applyHardwareEv(evVal / 10);
+  } else if (photoMode) {
+    renderPhotoFrame();
+  }
 });
 
 contrastSlider.addEventListener('input', () => {
@@ -1075,7 +1126,7 @@ function handleImageFile(file) {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       photoImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-      console.log(`📸 photo loaded: ${img.naturalWidth}x${img.naturalHeight}`);
+      console.log('📸 photo loaded: ' + img.naturalWidth + 'x' + img.naturalHeight);
 
       renderPhotoFrame();
 
@@ -1092,6 +1143,8 @@ function handleImageFile(file) {
 
 function initPhotoMode() {
   photoMode = true;
+  evHardware = false;
+  videoTrack = null;
   document.body.classList.add('photo-mode');
 
   titleBar.textContent = '黑白负片预览 · 拍照模式';
@@ -1128,6 +1181,7 @@ function initPhotoMode() {
   };
 
   syncSlidersToState();
+  updateEvDisplay();
 }
 
 // ─────────────────────────────────────
@@ -1166,9 +1220,14 @@ startBtn.addEventListener('click', () => {
     startOverlay.classList.add('hidden');
 
     syncSlidersToState();
+    updateEvDisplay();
     render();
 
-    console.log('✅ camera ready');
+    if (evHardware) {
+      showToast('硬件 EV 已就绪 — 曝光在传感器层面控制');
+    }
+
+    console.log('✅ camera ready, hardware EV:', evHardware);
   })().catch(err => {
     console.error('boot error:', err);
     showPhotoFallback();
@@ -1176,6 +1235,8 @@ startBtn.addEventListener('click', () => {
 });
 
 function showPhotoFallback() {
+  evHardware = false;
+  videoTrack = null;
   initPhotoMode();
   startError.classList.remove('show');
   startError.style.display = 'none';
