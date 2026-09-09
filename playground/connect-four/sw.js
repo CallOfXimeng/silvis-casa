@@ -1,5 +1,5 @@
 // Offline Service Worker for Connect Four
-const CACHE_NAME = 'connect-four-v1';
+const CACHE_NAME = 'connect-four-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
