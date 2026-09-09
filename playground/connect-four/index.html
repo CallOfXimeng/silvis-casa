@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>垂直四子棋 - 重力立式连珠</title>
+    <meta name="description" content="垂直立式重力四子棋，支持经典平面与圆柱拓扑模式（左右两边连通循环），横向与斜向四连珠可跨越左右边缘相连，支持智能人机对战与双人同屏。" />
+    <meta property="og:title" content="垂直四子棋 - 重力立式连珠" />
+    <meta property="og:description" content="垂直立式重力四子棋，支持经典平面与圆柱拓扑模式（左右两边连通循环），横向与斜向四连珠可跨越左右边缘相连，支持智能人机对战与双人同屏。" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- PWA & Android / iOS App Tags -->
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="alternate icon" type="image/png" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <meta name="theme-color" content="#0c0a09" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script type="module" crossorigin src="./assets/index-DDrAof_g.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DPSPGmIa.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
+
