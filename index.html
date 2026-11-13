@@ -16,6 +16,9 @@ title: "Home"
     z-index: 1;
   }
 
+  /* 置顶卡片不显示摘要（正文为空，摘要只留给 meta/feed） */
+  .post-card.pinned .post-card-excerpt { display: none; }
+
   .post-card.pinned::before {
     content: "📌 Top";
     position: absolute;
