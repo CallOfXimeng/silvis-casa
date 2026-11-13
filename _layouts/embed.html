@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title | default: "发动机图鉴" }}</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#f6f8fc;overflow:hidden}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block}
+</style>
+</head>
+<body>
+<iframe src="{{ '/playground/heat-engines.html' | relative_url }}" title="{{ page.title | default: '发动机图鉴' }}" allow="fullscreen"></iframe>
+</body>
+</html>
