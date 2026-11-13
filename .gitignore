@@ -5,3 +5,7 @@
 Gemfile.lock
 _site
 *.gem
+
+# 本地工具/工程，不发布到 Pages
+/playground/book-app-android/
+.claude/
