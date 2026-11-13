@@ -5151,6 +5151,25 @@ function makeView(inst, st){
     v.colorHot = gasColor(lerp(st.T, cyc.tMax, .55), cyc.tMin, cyc.tMax, .95);
     v.colorCold = gasColor(lerp(st.T, cyc.tMin, .45), cyc.tMin, cyc.tMax, .95);
   }
+  if(inst.def.kind === 'brayton'){
+    v.Tin   = inst.def.ref.T;
+    v.Tcomp = cyc.phases[0].Tof(1);
+    v.Tburn = cyc.phases[1].Tof(1);
+    v.Tturb = cyc.phases[2].Tof(1);
+  }
+  if(inst.conf.jetMode){
+    const b = (inst.vals.bpr || 0);
+    const T4 = cyc.phases[2].Tof(1);
+    const Tby = 330;
+    v.Tcore = T4;
+    v.Tby = Tby;
+    v.Tmix = (T4 + b*Tby)/(1+b);
+  }
+  if(inst.conf.motorMode && inst.conf.motor){
+    const op = motorOP(inst.conf, inst.vals);
+    v.spin = Math.max(0.15, Math.min(1.6, op.n / (inst.conf.motor.nmax*0.6)));
+    v.spinPhase = inst.spinPhase || 0;
+  }
   return v;
 }
 
