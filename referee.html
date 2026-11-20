@@ -271,7 +271,7 @@ document.querySelectorAll('#speed-buttons button').forEach(btn=>{
 let state='title',gameTime=0,half=1,goalsHome=0,goalsAway=0;
 let incidentCooldown=0,decisionTimer=0,currentIncident=null,feedbackTimer=0,varUsed=false;
 let totalDecisions=0,correctDecisions=0,partialDecisions=0,refRating=50;
-let players=[],ball={x:FW/2,y:FH/2,tx:FW/2,ty:FH/2,carrier:null,vx:0,vy:0};
+let players=[],ball={x:FW/2,y:FH/2,tx:FW/2,ty:FH/2,carrier:null,intendedTarget:null,vx:0,vy:0};
 let lastFrameTime=0;
 let tension=30,homeFouls=0,awayFouls=0,homeCards=0,awayCards=0,lenientCalls=0;
 let matchWarnings=0,matchYellows=0,matchReds=0,pendingGoal=null;
@@ -287,6 +287,7 @@ let decisionLog=[];
 let homePossTime=0,awayPossTime=0,totalPossFrames=0;
 let pendingStoppage=0;
 let ballTrail=[]; // VAR trail
+let varReplayPhase=null,varReplayTimer=0,varReplayTrail=[],varReplayIdx=0,varReplayBall=null;
 
 // ==================== FORMATIONS ====================
 const FORMATIONS={
@@ -389,91 +390,386 @@ function heatmapY(p,yFrac){
   return FT+yFrac*(FB-FT);
 }
 
-// ==================== MOVEMENT AI (dynamic heatmap-based) ====================
+// ==================== TACTICAL STATE ====================
+function getTacticalState(team){
+  const diff=team==='home'?goalsHome-goalsAway:goalsAway-goalsHome;
+  const t=gameTime/90;
+  let ag,cp,pr,rk;
+  if(diff>1){if(t>0.75){ag=0.3;cp=0.85;pr=0.25;rk=0.2;}else{ag=0.5;cp=0.6;pr=0.4;rk=0.4;}}
+  else if(diff===1){if(t>0.75){ag=0.35;cp=0.8;pr=0.3;rk=0.25;}else{ag=0.55;cp=0.55;pr=0.45;rk=0.5;}}
+  else if(diff===0){ag=0.6;cp=0.5;pr=0.55;rk=0.55;}
+  else if(diff===-1){if(t>0.75){ag=0.9;cp=0.3;pr=0.85;rk=0.85;}else{ag=0.7;cp=0.4;pr=0.65;rk=0.65;}}
+  else{if(t>0.85){ag=0.4;cp=0.7;pr=0.25;rk=0.3;}else if(t<0.6){ag=0.75;cp=0.35;pr=0.7;rk=0.7;}else{ag=0.65;cp=0.4;pr=0.6;rk=0.65;}}
+  return{aggression:ag,compactness:cp,pressing:pr,riskTaking:rk};
+}
+function isDefRole(p){return p.role.includes('CB')||p.role==='LB'||p.role==='RB'||p.role.includes('CDM');}
+
+// ==================== BALL PHYSICS ====================
+const BALL_FRICTION=0.97,BALL_MAX_SPEED=15,PASS_SPEED=8,SHOT_SPEED=16,COLLECT_RADIUS=14,TACKLE_RADIUS=22;
+let boundaryCooldown=0;
+
+function shootBall(player){
+  const ad=attackingDir(player.team);
+  const goalY=FH/2+(Math.random()-0.5)*140;
+  const goalX=ad===1?FR:FL;
+  const dx=goalX-ball.x,dy=goalY-ball.y,dist=Math.hypot(dx,dy);
+  ball.carrier=null;ball.intendedTarget=null;
+  ball.vx=(dx/dist)*SHOT_SPEED+(Math.random()-0.5)*3;
+  ball.vy=(dy/dist)*SHOT_SPEED+(Math.random()-0.5)*3;
+}
+function tryPass(player,tactics){
+  const ad=attackingDir(player.team);
+  const teammates=players.filter(p=>p.team===player.team&&!p.redCard&&p!==player&&p.role!=='GK');
+  if(!teammates.length) return;
+  const scored=teammates.map(p=>{
+    const dx=p.x-player.x,dy=p.y-player.y,dist=Math.hypot(dx,dy);
+    if(dist>300||dist<30) return null;
+    const fwd=(dx*ad)/Math.max(1,dist);
+    return{player:p,score:fwd*3-dist*0.01+Math.random()*2,dist,dx,dy};
+  }).filter(Boolean).sort((a,b)=>b.score-a.score);
+  if(!scored.length||Math.random()>tactics.riskTaking*0.8) return;
+  const t=scored[0];
+  // Offside check on forward passes
+  const isForward=t.dx*ad>0;
+  if(isForward&&Math.random()<0.15){
+    const lastDef=players.filter(p=>p.team!==player.team&&!p.redCard&&p.role!=='GK')
+      .sort((a,b)=>(ad*(b.x-a.x)))[1]; // 2nd last defender
+    if(lastDef){
+      const offsideLine=lastDef.x;
+      if(ad===1&&t.player.x>offsideLine) triggerOffsideIncident(t.player);
+      else if(ad===-1&&t.player.x<offsideLine) triggerOffsideIncident(t.player);
+    }
+  }
+  ball.carrier=null;ball.intendedTarget=t.player;
+  ball.vx=(t.dx/t.dist)*PASS_SPEED+(Math.random()-0.5)*2;
+  ball.vy=(t.dy/t.dist)*PASS_SPEED+(Math.random()-0.5)*2;
+}
+function resetBallAfterGoal(){
+  ball.x=FW/2;ball.y=FH/2;ball.vx=0;ball.vy=0;ball.carrier=null;ball.intendedTarget=null;
+  const conceding=lastGoalTeam==='home'?'away':'home';
+  const c=players.filter(p=>p.team===conceding&&!p.redCard&&p.role!=='GK');
+  if(c.length) ball.carrier=c[Math.floor(Math.random()*c.length)];
+  updateScoreboard();
+}
+function triggerBoundaryIncident(type){
+  if(boundaryCooldown>0) return;
+  const inc=INCIDENTS.find(i=>i.boundary&&i.correct===type);
+  if(inc){currentIncident={...inc};currentIncident.x=ball.x;currentIncident.y=ball.y;varUsed=false;state='incident';showIncidentUI();boundaryCooldown=8;}
+}
+function triggerPhysicsIncident(inc){
+  if(state!=='playing'||incidentCooldown>0) return;
+  currentIncident=inc;pendingGoal=null;varUsed=false;
+  state='incident';incidentCooldown=5;
+  showIncidentUI();
+}
+function triggerTackleIncident(tackler,tackled,fromBehind,impactSpeed){
+  if(state!=='playing') return;
+  // Pick foul severity based on tackle characteristics
+  const severe=fromBehind&&impactSpeed>4;
+  const reckless=impactSpeed>4||fromBehind;
+  const zone=ballZone();
+  let pool;
+  if(severe&&zone==='penaltyBox') pool=INCIDENTS.filter(i=>i.loc==='penaltyBox'&&(i.correct==='yellowCard'||i.correct==='redCard')&&i.pen);
+  else if(severe) pool=INCIDENTS.filter(i=>i.correct==='redCard'&&!i.pen&&!i.cfl);
+  else if(reckless) pool=INCIDENTS.filter(i=>i.correct==='yellowCard'&&!i.pen&&!i.cfl);
+  else pool=INCIDENTS.filter(i=>i.correct==='freeKick'||i.correct==='verbalWarning');
+  if(!pool.length) pool=INCIDENTS.filter(i=>i.correct==='freeKick'&&!i.cfl);
+  if(!pool.length) return;
+  const tmpl=pool[Math.floor(Math.random()*pool.length)];
+  const inc={...tmpl};
+  inc.offenderTeam=tackler.team;inc.offenderRole=tackler.role;
+  inc.x=ball.x;inc.y=ball.y;
+  // Resolve {team} template
+  if(inc.desc.includes('{team}')) inc.desc=inc.desc.replace('{team}',tackler.team==='home'?'红队':'蓝队');
+  triggerPhysicsIncident(inc);
+}
+function triggerOffsideIncident(attacker){
+  if(state!=='playing') return;
+  const pool=INCIDENTS.filter(i=>i.ii===true);
+  if(!pool.length) return;
+  const inc={...pool[Math.floor(Math.random()*pool.length)]};
+  inc.offenderTeam=attacker.team;inc.offenderRole=attacker.role;
+  inc.x=attacker.x;inc.y=attacker.y;
+  triggerPhysicsIncident(inc);
+}
+function resolvePlayerCollisions(){
+  const MIN_DIST=17;
+  for(let i=0;i<players.length;i++){
+    for(let j=i+1;j<players.length;j++){
+      const a=players[i],b=players[j];
+      if(a.redCard||b.redCard) continue;
+      const dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
+      if(dist<MIN_DIST&&dist>0.01){
+        const overlap=MIN_DIST-dist,nx=dx/dist,ny=dy/dist;
+        a.x-=nx*overlap*0.5;a.y-=ny*overlap*0.5;
+        b.x+=nx*overlap*0.5;b.y+=ny*overlap*0.5;
+        a.vx-=nx*0.3;a.vy-=ny*0.3;
+        b.vx+=nx*0.3;b.vy+=ny*0.3;
+        // Hard collision between opponents → possible foul
+        if(a.team!==b.team){
+          const impact=Math.abs(a.vx-b.vx)+Math.abs(a.vy-b.vy);
+          if(impact>7&&Math.random()<0.15){
+            triggerTackleIncident(a,b,false,impact);
+          }
+        }
+      }
+    }
+  }
+}
+
+// ==================== MOVEMENT AI (Newton + Boids + Ball Physics) ====================
 function updateBallAndPlayers(dt){
   if(state!=='playing') return;
-  // Smart passing: prefer nearby teammates in forward direction
-  if(!ball.carrier||ball.carrier.redCard||Math.random()<0.012){
-    const ad=ball.carrier?attackingDir(ball.carrier.team):0;
-    const candidates=players.filter(p=>!p.redCard&&p.role!=='GK'&&p!==ball.carrier);
-    // Prefer same-team players in forward direction, within 250px
-    if(ball.carrier&&candidates.length){
-      const sameTeam=candidates.filter(p=>p.team===ball.carrier.team);
-      const nearby=sameTeam.filter(p=>Math.hypot(ball.x-p.x,ball.y-p.y)<250);
-      const forward=nearby.filter(p=>(p.x-ball.x)*ad>0);
-      const passCandidates=forward.length?forward:nearby.length?nearby:sameTeam;
-      if(passCandidates.length) ball.carrier=passCandidates[Math.floor(Math.random()*passCandidates.length)];
+  if(boundaryCooldown>0) boundaryCooldown-=dt;
+
+  // ---- BALL PHYSICS ----
+  if(!ball.carrier||ball.carrier.redCard){
+    // Free ball: friction + move
+    ball.vx*=Math.pow(BALL_FRICTION,dt*60);
+    ball.vy*=Math.pow(BALL_FRICTION,dt*60);
+    const bs=Math.hypot(ball.vx,ball.vy);
+    if(bs>BALL_MAX_SPEED){ball.vx=ball.vx/bs*BALL_MAX_SPEED;ball.vy=ball.vy/bs*BALL_MAX_SPEED;}
+    if(bs<0.2){ball.vx=0;ball.vy=0;}
+    ball.x+=ball.vx*dt*60;ball.y+=ball.vy*dt*60;
+
+    // Goal detection
+    const inGoalY=ball.y>FH/2-71.5&&ball.y<FH/2+71.5;
+    if(ball.x<FL&&inGoalY){goalsAway++;halfGoals++;lastGoalTeam='away';lastGoalGameTime=gameTime;pendingPostGoal='away';resetBallAfterGoal();}
+    else if(ball.x>FR&&inGoalY){goalsHome++;halfGoals++;lastGoalTeam='home';lastGoalGameTime=gameTime;pendingPostGoal='home';resetBallAfterGoal();}
+    else if(ball.x<=FL||ball.x>=FR||ball.y<=FT||ball.y>=FB){
+      // Out of bounds
+      ball.x=Math.max(FL+10,Math.min(FR-10,ball.x));
+      ball.y=Math.max(FT+10,Math.min(FB-10,ball.y));
+      ball.vx=0;ball.vy=0;ball.carrier=null;ball.intendedTarget=null;
+      if(boundaryCooldown<=0){
+        const zone=ballZone();
+        let type=null;
+        if(ball.x<=FL+15){type=ball.y<FH/2?'cornerHome':'goalKickHome';}
+        else if(ball.x>=FR-15){type=ball.y<FH/2?'cornerAway':'goalKickAway';}
+        else{type=ball.x<FW/2?'throwAway':'throwHome';}
+        triggerBoundaryIncident(type);
+      }
     }
-    if(!ball.carrier||ball.carrier.redCard){
-      const fp=players.filter(p=>!p.redCard&&p.role!=='GK');
-      if(fp.length) ball.carrier=fp[Math.floor(Math.random()*fp.length)];
+
+    // Collect ball + handball check
+    if(!ball.carrier){
+      let best=null,bestD=COLLECT_RADIUS;
+      for(const p of players){
+        if(p.redCard) continue;
+        const d=Math.hypot(ball.x-p.x,ball.y-p.y);
+        const minD=p===ball.intendedTarget?COLLECT_RADIUS*0.5:COLLECT_RADIUS;
+        if(d<minD&&d<bestD){best=p;bestD=d;}
+        // Handball check: ball passes very close but not collected
+        else if(d<20&&d>=COLLECT_RADIUS&&Math.random()<0.008){
+          const bs=Math.hypot(ball.vx,ball.vy);
+          if(bs>3&&!p.role.includes('GK')){
+            const inBox=(p.team==='home'?ball.x<FL+160&&ball.y>FT+120&&ball.y<FB-120:ball.x>FR-160&&ball.y>FT+120&&ball.y<FB-120);
+            const pool=INCIDENTS.filter(i=>i.id&&i.id.includes('handball')||i.desc.includes('手球')||i.desc.includes('手臂'));
+            if(pool.length){
+              const inc={...pool[Math.floor(Math.random()*pool.length)]};
+              inc.offenderTeam=p.team;inc.offenderRole=p.role;
+              inc.x=ball.x;inc.y=ball.y;
+              if(inBox) inc.loc='penaltyBox';
+              triggerPhysicsIncident(inc);
+            }
+          }
+        }
+      }
+      if(best){ball.carrier=best;ball.intendedTarget=null;ball.vx=0;ball.vy=0;}
+    }
+    // Penalty box density check
+    if(ball.carrier){
+      const inBox=(ball.carrier.team==='home'?ball.x>FR-160&&ball.y>FT+120&&ball.y<FB-120:ball.x<FL+160&&ball.y>FT+120&&ball.y<FB-120);
+      if(inBox){
+        const boxPlayers=players.filter(pp=>!pp.redCard&&Math.hypot(ball.x-pp.x,ball.y-pp.y)<80);
+        if(boxPlayers.length>=5&&Math.random()<0.015*dt){
+          const pool=INCIDENTS.filter(i=>i.loc==='penaltyBox'&&(i.pen||i.correct==='freeKick'||i.correct==='yellowCard'));
+          if(pool.length){
+            const inc={...pool[Math.floor(Math.random()*pool.length)]};
+            inc.offenderTeam=Math.random()<0.5?'home':'away';
+            inc.x=ball.x;inc.y=ball.y;
+            triggerPhysicsIncident(inc);
+          }
+        }
+      }
+    }
+  }else{
+    // Ball with carrier
+    ball.x=ball.carrier.x;ball.y=ball.carrier.y;
+    ball.vx=ball.carrier.vx;ball.vy=ball.carrier.vy;ball.intendedTarget=null;
+
+    const tac=getTacticalState(ball.carrier.team);
+    const ad=attackingDir(ball.carrier.team);
+    const dg=ad===1?FR-ball.x:ball.x-FL;
+
+    // Shoot: high probability near goal, forces decision
+    if(dg<200&&ball.carrier){
+      const sc=dg<50?0.35:dg<100?0.12:dg<150?0.05:0.02;
+      if(Math.random()<sc*tac.aggression*dt) shootBall(ball.carrier);
+    }
+    // Pass
+    if(ball.carrier&&Math.random()<0.025*dt) tryPass(ball.carrier,tac);
+    // Opponent tackles: physics-based foul check
+    if(ball.carrier) for(const p of players){
+      if(p.redCard||p.team===ball.carrier.team||p.role==='GK') continue;
+      const d=Math.hypot(ball.x-p.x,ball.y-p.y);
+      if(d<TACKLE_RADIUS&&Math.random()<0.06*tac.pressing*dt){
+        const fromBehind=(p.x-ball.carrier.x)*ad>0;
+        const impactSpeed=Math.hypot(p.vx-ball.carrier.vx,p.vy-ball.carrier.vy);
+        const successRate=d<8?0.55:d<15?0.4:0.3;
+        if(Math.random()<successRate){
+          // Tackle succeeds
+          const oldCarrier=ball.carrier;
+          ball.carrier=p;ball.vx=0;ball.vy=0;
+          // ~25% chance tackle is a foul despite winning ball
+          if(Math.random()<0.25||(fromBehind&&impactSpeed>3)) triggerTackleIncident(p,oldCarrier,fromBehind,impactSpeed);
+        }else if(fromBehind&&impactSpeed>3.5){
+          // Failed tackle from behind at speed → likely foul
+          triggerTackleIncident(p,ball.carrier,true,impactSpeed);
+        }
+        break;
+      }
     }
   }
-  // Ball follows carrier
-  if(ball.carrier){ball.tx=ball.carrier.x;ball.ty=ball.carrier.y;}
-  const bdx=ball.tx-ball.x,bdy=ball.ty-ball.y,bdist=Math.sqrt(bdx*bdx+bdy*bdy);
-  if(bdist>2){ball.vx+=(bdx/bdist)*5-ball.vx*0.12;ball.vy+=(bdy/bdist)*5-ball.vy*0.12;ball.x+=ball.vx*dt*60;ball.y+=ball.vy*dt*60;}
 
-  // Player movement
+  // ---- PLAYER MOVEMENT (Newton's 2nd Law + Boids) ----
   for(const p of players){
     if(p.redCard) continue;
+    let fx=0,fy=0;
+    const tac=getTacticalState(p.team),ad=attackingDir(p.team);
     const hm=HEATMAPS[p.role]||HEATMAPS['CM1'];
-    const hxMin=heatmapX(p,hm.x[0]),hxMax=heatmapX(p,hm.x[1]);
-    const hyMin=heatmapY(p,hm.y[0]),hyMax=heatmapY(p,hm.y[1]);
-    const hxMid=(hxMin+hxMax)/2,hyMid=(hyMin+hyMax)/2;
-    const hxRng=(hxMax-hxMin)/2,hyRng=(hyMax-hyMin)/2;
-    const db=Math.hypot(ball.x-p.x,ball.y-p.y);
-    const ad=attackingDir(p.team);
-    const isDef=p.role.includes('CB')||p.role==='LB'||p.role==='RB'||p.role.includes('CDM');
+    const hxMid=heatmapX(p,(hm.x[0]+hm.x[1])/2),hyMid=heatmapY(p,(hm.y[0]+hm.y[1])/2);
+    const hxRng=heatmapX(p,hm.x[1])-heatmapX(p,hm.x[0]);
+    const hyRng=heatmapY(p,hm.y[1])-heatmapY(p,hm.y[0]);
+    const db=Math.hypot(ball.x-p.x,ball.y-p.y),def=isDefRole(p);
+    const hxMin=heatmapX(p,hm.x[0])-20,hxMax=heatmapX(p,hm.x[1])+20;
+    const hyMin=heatmapY(p,hm.y[0])-15,hyMax=heatmapY(p,hm.y[1])+15;
 
+    // --- Target position ---
+    let tx,ty;
     if(p===ball.carrier){
-      // Carrier: drive toward opponent's goal, stay in heatmap
-      const pushX=p.x+ad*25+(Math.random()-0.5)*20;
-      const pushY=p.y+(Math.random()-0.5)*20;
-      p.tx=Math.max(hxMin-10,Math.min(hxMax+10,pushX));
-      p.ty=Math.max(hyMin-10,Math.min(hyMax+10,pushY));
-    }else if(db<80&&p.team!==ball.carrier?.team){
-      // Opponent nearby: press toward ball
-      p.tx=ball.x+(p.x-ball.x)*0.5+(Math.random()-0.5)*12;
-      p.ty=ball.y+(p.y-ball.y)*0.5+(Math.random()-0.5)*12;
-    }else if(db<140&&p.team===ball.carrier?.team){
-      // Teammate: support run, advance with attack
-      const supX=ball.x-ad*30+(p.x-ball.x)*0.3+(Math.random()-0.5)*18;
-      const supY=ball.y+(p.y-ball.y)*0.3+(Math.random()-0.5)*16;
-      p.tx=Math.max(hxMin-10,Math.min(hxMax+15,supX));
-      p.ty=Math.max(hyMin-10,Math.min(hyMax+10,supY));
-    }else if(isDef&&ball.carrier&&ball.carrier.team!==p.team&&db<280){
-      // Defender tracking opponent's attack: retreat and shift laterally to cover
-      const retreatX=p.x-ad*18+(ball.x-p.x)*0.08+(Math.random()-0.5)*8;
-      const shiftY=ball.y+(p.y-ball.y)*0.25+(Math.random()-0.5)*12;
-      p.tx=Math.max(hxMin-8,Math.min(hxMax+8,retreatX));
-      p.ty=Math.max(hyMin-8,Math.min(hyMax+8,shiftY));
+      // Drive toward opponent goal (absolute target, not relative)
+      const goalX=ad===1?FR-30:FL+30;
+      const dg=ad===1?FR-p.x:p.x-FL;
+      const push=20+tac.aggression*25;
+      if(dg<80){
+        // Near goal line: cut inside toward center, stop oscillating
+        tx=p.x+ad*(-10)+(FH/2-p.y)*0.15;
+        ty=p.y*0.6+FH/2*0.4;
+      }else{
+        tx=p.x+(goalX-p.x)*0.18+ad*push*0.5;
+        ty=p.y*0.8+(FH/2+(p.by-0.5)*(FB-FT)*0.3)*0.2+(Math.sin(Date.now()/1500+p.number)*15);
+      }
+      // Allow carrier to push well beyond heatmap into attacking third
+      const looseHxMin=heatmapX(p,Math.min(0.02,hm.x[0])),looseHxMax=heatmapX(p,Math.max(0.95,hm.x[1]));
+      tx=Math.max(looseHxMin-40,Math.min(looseHxMax+40,tx));
+      ty=Math.max(hyMin-30,Math.min(hyMax+30,ty));
+    }else if(p.role==='GK'){
+      const ownGX=ad===1?FL+46:FR-46;
+      const ballInOwnBox=(p.team==='home'?ball.x<FL+160&&ball.y>FT+120&&ball.y<FB-120:ball.x>FR-160&&ball.y>FT+120&&ball.y<FB-120);
+      if(ballInOwnBox&&!ball.carrier){tx=ball.x+(ownGX-ball.x)*0.3;ty=ball.y;}
+      else if(ballInOwnBox&&ball.carrier&&ball.carrier.team!==p.team){tx=ball.x*0.4+ownGX*0.6;ty=ball.y*0.5+FH/2*0.5;}
+      else{tx=ownGX+20;ty=FH/2+Math.sin(Date.now()/3000+p.by*5)*30;}
+      tx=Math.max(hxMin,Math.min(hxMax,tx));ty=Math.max(hyMin,Math.min(hyMax,ty));
+    }else if(ball.carrier&&ball.carrier.team!==p.team){
+      // Opponent has ball: rank players by proximity to ball, engage accordingly
+      const opps=players.filter(o=>o.team===p.team&&!o.redCard&&o.role!=='GK').sort((a,b)=>Math.hypot(ball.x-a.x,ball.y-a.y)-Math.hypot(ball.x-b.x,ball.y-b.y));
+      const myRank=opps.findIndex(o=>o===p);
+      if(myRank<=2){
+        // Nearest 3 players: aggressively close down the ball carrier from any distance
+        const approachSpeed=0.55+myRank*0.1;
+        tx=ball.x+(p.x-ball.x)*(1-approachSpeed);
+        ty=ball.y+(p.y-ball.y)*(1-approachSpeed);
+      }else if(myRank<=5&&db<500){
+        // Next 3: cover passing lanes, position between ball and own goal
+        const ownGoalX=ad===1?FL:FR;
+        tx=ball.x*0.4+ownGoalX*0.6;
+        ty=ball.y*0.5+hyMid*0.5;
+      }else if(def&&db<500){
+        // Deep defenders: drop toward own goal, shift with ball
+        tx=p.x-ad*(12+tac.compactness*20);
+        ty=ball.y*0.3+hyMid*0.7;
+      }else{
+        const per=2500+p.number*200;
+        tx=hxMid+Math.sin(Date.now()/per)*hxRng*0.3;
+        ty=hyMid+Math.cos(Date.now()/(per+700))*hyRng*0.3;
+      }
+      tx=Math.max(hxMin-15,Math.min(hxMax+15,tx));ty=Math.max(hyMin-10,Math.min(hyMax+10,ty));
+    }else if(ball.carrier&&ball.carrier.team===p.team){
+      // Teammate has ball: support run
+      const supX=ball.x-ad*(25+tac.compactness*18);
+      const supY=ball.y+(p.y-ball.y)*0.35;
+      tx=supX;ty=supY;
+      tx=Math.max(hxMin-15,Math.min(hxMax+15,tx));ty=Math.max(hyMin-10,Math.min(hyMax+10,ty));
     }else{
-      // Far from ball: return to heatmap center with drift
-      const driftX=hxMid+(Math.sin(Date.now()/2000+p.bx*10)*hxRng*0.5)+(Math.random()-0.5)*hxRng*0.3;
-      const driftY=hyMid+(Math.cos(Date.now()/2500+p.by*10)*hyRng*0.5)+(Math.random()-0.5)*hyRng*0.3;
-      p.tx=driftX;p.ty=driftY;
+      const per=2500+p.number*200;
+      tx=hxMid+Math.sin(Date.now()/per)*hxRng*0.4;
+      ty=hyMid+Math.cos(Date.now()/(per+700))*hyRng*0.4;
+      tx=Math.max(hxMin,Math.min(hxMax,tx));ty=Math.max(hyMin,Math.min(hyMax,ty));
     }
-    // Defenders stay deeper; forwards who don't track back stay forward
-    if(isDef){p.tx=Math.max(hxMin-5,p.tx);if(ad===1) p.tx=Math.min(hxMid+40,p.tx);else p.tx=Math.max(hxMid-40,p.tx);}
-    if(!p.tracksBack){const minX=FL+p.bx*(FR-FL);if(ad===1) p.tx=Math.max(minX-30,p.tx);else p.tx=Math.min(minX+30,p.tx);}
-    // Final clamp
-    p.tx=Math.max(FL+5,Math.min(FR-5,p.tx));p.ty=Math.max(FT+5,Math.min(FB-5,p.ty));
-    // Velocity-based smooth movement
-    const pdx=p.tx-p.x,pdy=p.ty-p.y,pdist=Math.hypot(pdx,pdy);
-    const spd=p.role==='GK'?.8:isDef?1.5:2.2;
-    p.vx+=(pdx/Math.max(1,pdist))*spd*0.35-p.vx*0.18;
-    p.vy+=(pdy/Math.max(1,pdist))*spd*0.35-p.vy*0.18;
+    // Compactness: pull toward team center (skip carrier and GK)
+    if(tac.compactness>0.5&&p!==ball.carrier&&p.role!=='GK'){
+      const ctx=ad===1?FL+(FR-FL)*0.35:FL+(FR-FL)*0.65;
+      const cf=(tac.compactness-0.5)*1.5;
+      tx=tx*(1-cf)+ctx*cf;
+    }
+    // Final clamp (carrier already clamped in its own branch)
+    if(p!==ball.carrier){tx=Math.max(hxMin,Math.min(hxMax,tx));ty=Math.max(hyMin,Math.min(hyMax,ty));}
+
+    // --- Forces ---
+    // Target spring
+    const tdx=tx-p.x,tdy=ty-p.y,td=Math.hypot(tdx,tdy);
+    if(td>1){const fm=Math.min(td*0.15,3.5);fx+=(tdx/td)*fm;fy+=(tdy/td)*fm;}
+    // Boids: separation
+    for(const o of players){
+      if(o===p||o.redCard) continue;
+      const sdx=p.x-o.x,sdy=p.y-o.y,sd=Math.hypot(sdx,sdy);
+      if(sd<25&&sd>0.1){const sf=(25-sd)/25*2.0;fx+=(sdx/sd)*sf;fy+=(sdy/sd)*sf;}
+    }
+    // Boids: alignment
+    let avx=0,avy=0,ac=0;
+    for(const o of players){
+      if(o===p||o.redCard||o.team!==p.team) continue;
+      if(Math.hypot(p.x-o.x,p.y-o.y)<60){avx+=o.vx;avy+=o.vy;ac++;}
+    }
+    if(ac>0){avx/=ac;avy/=ac;fx+=(avx-p.vx)*0.15;fy+=(avy-p.vy)*0.15;}
+    // Boids: cohesion
+    let cx=0,cy=0,cc=0;
+    for(const o of players){
+      if(o===p||o.redCard||o.team!==p.team) continue;
+      const cd=Math.hypot(p.x-o.x,p.y-o.y);
+      if(cd<80&&cd>30){cx+=o.x;cy+=o.y;cc++;}
+    }
+    if(cc>0){cx/=cc;cy/=cc;fx+=(cx-p.x)*0.04;fy+=(cy-p.y)*0.04;}
+
+    // Newton: a=F (m=1), clamp acceleration
+    const maxA=p.role==='GK'?1.8:def?3.0:4.0;
+    const tf=Math.hypot(fx,fy);
+    if(tf>maxA){fx=fx/tf*maxA;fy=fy/tf*maxA;}
+    p.vx+=fx*dt*60;p.vy+=fy*dt*60;
+    // Drag
+    p.vx*=0.90;p.vy*=0.90;
+    // Max speed
+    const baseSpd=p.role==='GK'?2.2:def?4.0:5.5;
+    const maxSpd=baseSpd*(0.8+tac.aggression*0.4);
+    const spd=Math.hypot(p.vx,p.vy);
+    if(spd>maxSpd){p.vx=p.vx/spd*maxSpd;p.vy=p.vy/spd*maxSpd;}
+    // Integrate
     p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;
+    p.x=Math.max(FL+8,Math.min(FR-8,p.x));p.y=Math.max(FT+8,Math.min(FB-8,p.y));
   }
-  // Ball carrier flag
+
+  resolvePlayerCollisions();
+
+  // Possession stats
   if(ball.carrier&&!ball.carrier.redCard){totalPossFrames++;if(ball.carrier.team==="home") homePossTime++;else awayPossTime++;}
   players.forEach(p=>p.hasBall=false);
   if(ball.carrier&&!ball.carrier.redCard) ball.carrier.hasBall=true;
-  // Goal opportunity → incident
+
+  // Goal opportunity incident
   if(Math.random()<GOAL_INCIDENT_CHANCE*dt){
-    const nearLeft=ball.x<FL+160,nearRight=ball.x>FR-160;
-    if(nearLeft||nearRight) triggerGoalIncident(nearLeft?'away':'home');
+    const nl=ball.x<FL+160,nr=ball.x>FR-160;
+    if(nl||nr) triggerGoalIncident(nl?'away':'home');
   }
 }
 
@@ -786,31 +1082,42 @@ function ballZone(){
   return'midfield';
 }
 function generateIncident(){
+  // Timer-based incidents: exclude physics-triggered types (fouls, offsides, boundary)
+  // Timer handles: dissent, timewasting, droppedBall, conflict, injury, some playOn
   const zone=ballZone();
-  // Filter by ball zone first: incidents must match where the ball actually is
-  let pool=INCIDENTS.filter(i=>i.loc===zone);
-  // If no incidents for this zone, expand to nearby zones
-  if(!pool.length){
-        const nearby={'penaltyBox':['penaltyBox','penaltyEdge','attacking','defensive'],'penaltyEdge':['penaltyEdge','penaltyBox','attacking','defensive','midfield'],'defensive':['defensive','penaltyEdge','midfield','sideline'],'attacking':['attacking','penaltyEdge','midfield','sideline'],'midfield':['midfield','defensive','attacking','sideline','penaltyEdge'],'sideline':['sideline','midfield','defensive','attacking']};
-
-    pool=INCIDENTS.filter(i=>nearby[zone]?.includes(i.loc));
+  let pool=INCIDENTS.filter(i=>{
+    if(i.boundary||i.ii) return false; // boundary + offside now physics-triggered
+    if(i.inj||i.cfl||i.correct==='droppedBall') return true; // always timer
+    if(i.correct==='playOn'||i.correct==='verbalWarning') return true; // timer
+    // Tackle-type incidents now physics-triggered
+    if(i.correct==='freeKick'||i.correct==='yellowCard'||i.correct==='redCard'){
+      if(i.cond||i.cfl||i.pen||i.inj) return true; // conditional/conflict/penalty/injury → timer
+      return false; // direct foul → physics
+    }
+    return true;
+  });
+  // Filter by ball zone
+  let zonePool=pool.filter(i=>i.loc===zone);
+  if(!zonePool.length){
+    const nearby={penaltyBox:['penaltyBox','penaltyEdge','attacking','defensive'],penaltyEdge:['penaltyEdge','penaltyBox','attacking','defensive','midfield'],defensive:['defensive','penaltyEdge','midfield','sideline'],attacking:['attacking','penaltyEdge','midfield','sideline'],midfield:['midfield','defensive','attacking','sideline','penaltyEdge'],sideline:['sideline','midfield','defensive','attacking']};
+    zonePool=pool.filter(i=>nearby[zone]?.includes(i.loc));
   }
-  if(!pool.length) pool=[...INCIDENTS];
+  if(!zonePool.length) zonePool=pool;
+  if(!zonePool.length) zonePool=[...INCIDENTS];
   // Condition filter
-  pool=pool.filter(i=>!i.cond||i.cond(i));
-  if(!pool.length) pool=[...INCIDENTS];
+  zonePool=zonePool.filter(i=>!i.cond||i.cond(i));
+  if(!zonePool.length) zonePool=pool.filter(i=>!i.cond||i.cond(i));
+  if(!zonePool.length) zonePool=[...INCIDENTS];
   // Tension bias
-  if(tension>65) pool=pool.filter(i=>Math.random()<0.7?i.diff!=='easy':true);
-  if(!pool.length) pool=INCIDENTS.filter(i=>!i.cond||i.cond(i));
-  if(!pool.length) pool=[...INCIDENTS];
-  const inc={...pool[Math.floor(Math.random()*pool.length)]};
+  if(tension>65) zonePool=zonePool.filter(i=>Math.random()<0.7?i.diff!=='easy':true);
+  if(!zonePool.length) zonePool=pool.filter(i=>!i.cond||i.cond(i));
+  if(!zonePool.length) zonePool=[...INCIDENTS];
+  const inc={...zonePool[Math.floor(Math.random()*zonePool.length)]};
   if(inc.desc.includes('{team}')) inc.desc=inc.desc.replace('{team}',inc.offenderTeam==='home'?'红队':'蓝队');
-  // Place incident at ball position
   inc.x=ball.x+(Math.random()-0.5)*40;
   inc.y=ball.y+(Math.random()-0.5)*40;
   inc.x=Math.max(FL+5,Math.min(FR-5,inc.x));
   inc.y=Math.max(FT+5,Math.min(FB-5,inc.y));
-  // Pick offender based on zone
   if(!inc.offenderRole){
     const rmap={penaltyBox:['CB1','CB2','GK'],penaltyEdge:['CB1','CB2','LB','RB'],defensive:['CB1','CB2','LB','RB'],attacking:['ST1','ST2','LM','RM'],midfield:['CM1','CM2','LM','RM'],sideline:['LB','RB','LM','RM']};
     inc.offenderRole=(rmap[zone]||['CM1','CM2'])[Math.floor(Math.random()*(rmap[zone]||['CM1']).length)];
@@ -918,7 +1225,7 @@ function swapEnds(){
     p.x=FL+p.bx*(FR-FL);p.y=FT+p.by*(FB-FT);
     p.tx=p.x;p.ty=p.y;p.vx=0;p.vy=0;
   }
-  ball.x=FW/2;ball.y=FH/2;ball.tx=FW/2;ball.ty=FH/2;ball.vx=0;ball.vy=0;ball.carrier=null;
+  ball.x=FW/2;ball.y=FH/2;ball.tx=FW/2;ball.ty=FH/2;ball.vx=0;ball.vy=0;ball.carrier=null;ball.intendedTarget=null;
 }
 function doHalftime(){
   swapEnds();
@@ -1058,7 +1365,18 @@ function getCorrectParts(inc){
 function handleDecision(action){
   if(state!=='incident') return;
   if(action==='var'){
-    if(!varUsed){varUsed=true;halfVARs++;varInfo.textContent='📺 '+currentIncident.varReveals;varInfo.classList.add('show');if(currentIncident.diff==='easy') refRating=Math.max(0,refRating-1);}
+    if(!varUsed){varUsed=true;halfVARs++;
+      varInfo.textContent='📺 '+currentIncident.varReveals;varInfo.classList.add('show');
+      if(currentIncident.diff==='easy') refRating=Math.max(0,refRating-1);
+      // Trigger VAR slow-motion replay
+      if(ballTrail.length>10){
+        varReplayTrail=[...ballTrail];varReplayPhase='rewind';
+        varReplayIdx=varReplayTrail.length-1;varReplayTimer=0;
+        varReplayBall={x:varReplayTrail[varReplayIdx].x,y:varReplayTrail[varReplayIdx].y};
+        state='varReplay';
+        decisionButtons.querySelectorAll('button').forEach(b=>b.disabled=true);
+      }
+    }
     return;
   }
   let resultType='wrong',resultText='判罚错误！❌';
@@ -1184,6 +1502,15 @@ function gameLoop(ts){
     }
   }
   if(state==='incident'){/* no time limit */}
+  if(state==='varReplay'){
+    varReplayTimer+=dt;
+    const tf=varReplayTrail.length;
+    if(varReplayPhase==='rewind'){varReplayIdx-=dt*60*0.6;if(varReplayIdx<=0){varReplayIdx=0;varReplayPhase='pause2';varReplayTimer=0;}}
+    else if(varReplayPhase==='pause2'){if(varReplayTimer>0.4){varReplayPhase='forward';varReplayTimer=0;}}
+    else if(varReplayPhase==='forward'){varReplayIdx+=dt*60*0.18;if(varReplayIdx>=tf-1){varReplayIdx=tf-1;varReplayPhase='done';varReplayTimer=0;}}
+    else if(varReplayPhase==='done'){if(varReplayTimer>0.7){state='incident';varReplayPhase=null;showIncidentUI();}}
+    if(varReplayIdx>=0&&varReplayIdx<tf){varReplayBall=varReplayTrail[Math.floor(varReplayIdx)];}
+  }
   if(state==='feedback'){feedbackTimer-=dt*1000;if(feedbackTimer<=0){hideIncidentUI();state='playing';incidentCooldown=INCIDENT_MIN+Math.random()*(INCIDENT_MAX-INCIDENT_MIN);
     // Check for post-goal event
     if(pendingPostGoal&&Math.random()<0.35){const pgTeam=pendingPostGoal;pendingPostGoal=null;triggerPostGoal(pgTeam);}
@@ -1191,18 +1518,53 @@ function gameLoop(ts){
   }}
 
   // Ball trail tracking (always, for VAR)
-  ballTrail.push({x:ball.x,y:ball.y});if(ballTrail.length>150) ballTrail.shift();
+  if(state==='playing'){ballTrail.push({x:ball.x,y:ball.y});if(ballTrail.length>180) ballTrail.shift();}
 
-  drawField();drawPlayers();drawBall();
-  // Draw VAR trail if viewing
-  if(varUsed&&ballTrail.length>1){
-    ctx.strokeStyle='rgba(255,215,0,0.7)';ctx.lineWidth=3;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(ballTrail[0].x,ballTrail[0].y);
-    for(let i=1;i<ballTrail.length;i++){ctx.lineTo(ballTrail[i].x,ballTrail[i].y);}
-    ctx.stroke();
-    // Trail dots at key points
-    for(let i=0;i<ballTrail.length;i+=30){
-      ctx.fillStyle='rgba(255,215,0,0.8)';ctx.beginPath();ctx.arc(ballTrail[i].x,ballTrail[i].y,3,0,Math.PI*2);ctx.fill();
+  drawField();
+  if(state==='varReplay'){
+    // Dim overlay
+    ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,FW,FH);
+    drawPlayers(); // frozen
+    // Draw replay trail
+    if(varReplayTrail.length>1){
+      ctx.strokeStyle='rgba(255,215,0,0.5)';ctx.lineWidth=2;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(varReplayTrail[0].x,varReplayTrail[0].y);
+      for(let i=1;i<varReplayTrail.length;i++){ctx.lineTo(varReplayTrail[i].x,varReplayTrail[i].y);}
+      ctx.stroke();
+      // Key frame dots
+      for(let i=0;i<varReplayTrail.length;i+=25){
+        const alpha=0.4+0.4*(i/varReplayTrail.length);
+        ctx.fillStyle=`rgba(255,215,0,${alpha})`;ctx.beginPath();
+        ctx.arc(varReplayTrail[i].x,varReplayTrail[i].y,2.5,0,Math.PI*2);ctx.fill();
+      }
+    }
+    // Replay ball (glowing)
+    if(varReplayBall){
+      const pulse=Math.sin(varReplayTimer*12)*0.3+0.7;
+      ctx.fillStyle=`rgba(255,255,255,${0.3+pulse*0.3})`;ctx.beginPath();ctx.arc(varReplayBall.x,varReplayBall.y,12,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(varReplayBall.x,varReplayBall.y,6,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    }
+    // VAR overlay text
+    const phaseText=varReplayPhase==='rewind'?'⏪ 回看中...':varReplayPhase==='forward'?'🔍 慢速回放...':varReplayPhase==='done'?'✅ 回放完成':'📺 VAR 检查中...';
+    ctx.fillStyle='rgba(0,0,0,0.8)';const tw=ctx.measureText(phaseText).width;
+    ctx.fillRect(FW/2-tw/2-20,FH/2+80,tw+40,36);
+    ctx.fillStyle='#ffd700';ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText(phaseText,FW/2,FH/2+105);
+    // VAR border flash
+    const borderAlpha=0.5+Math.sin(varReplayTimer*5)*0.3;
+    ctx.strokeStyle=`rgba(255,215,0,${borderAlpha})`;ctx.lineWidth=4;
+    ctx.strokeRect(FL+4,FT+4,FR-FL-8,FB-FT-8);
+  }else{
+    drawPlayers();drawBall();
+    // Draw VAR trail if viewing (static, when user has used VAR)
+    if(varUsed&&ballTrail.length>1){
+      ctx.strokeStyle='rgba(255,215,0,0.4)';ctx.lineWidth=2;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(ballTrail[0].x,ballTrail[0].y);
+      for(let i=1;i<ballTrail.length;i++){ctx.lineTo(ballTrail[i].x,ballTrail[i].y);}
+      ctx.stroke();
+      for(let i=0;i<ballTrail.length;i+=30){
+        ctx.fillStyle='rgba(255,215,0,0.6)';ctx.beginPath();ctx.arc(ballTrail[i].x,ballTrail[i].y,2,0,Math.PI*2);ctx.fill();
+      }
     }
   }
   if(state==='incident'&&currentIncident){ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(currentIncident.x,currentIncident.y,18,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);const pulse=Math.sin(Date.now()/200)*0.5+0.5;ctx.fillStyle=`rgba(255,0,0,${0.4+pulse*0.4})`;ctx.beginPath();ctx.arc(currentIncident.x,currentIncident.y,10,0,Math.PI*2);ctx.fill();}
@@ -1268,7 +1630,8 @@ function resetState(){
   lastGoalTeam=null;lastGoalGameTime=-99;pendingPostGoal=null;homeAttacksRight=true;decisionLog=[];homePossTime=0;awayPossTime=0;totalPossFrames=0;ballTrail=[];pendingStoppage=0;[];
   addedIndicator.style.display='none';addedOverlay.classList.remove('active');
   pauseOverlay.classList.remove('active');paused=false;pauseBtn.textContent='⏸️';
-  feedbackToast.classList.remove('show');hideIncidentUI();
+  feedbackToast.classList.remove('show');hideIncidentUI();boundaryCooldown=0;
+  varReplayPhase=null;varReplayTimer=0;varReplayTrail=[];varReplayIdx=0;varReplayBall=null;
 }
 function startGame(){titleScreen.style.display='none';
 resultScreen.classList.remove('active');
@@ -1276,8 +1639,7 @@ resetState();
 initPlayers();
 ball.x=ball.tx=FW/2;
 ball.y=ball.ty=FH/2;
-ball.vx=0;
-ball.vy=0;
+ball.vx=0;ball.vy=0;ball.intendedTarget=null;boundaryCooldown=0;
 ball.carrier=players.find(p=>p.team==='home'&&(p.role==='CM1'||p.role==='CM2'));
 updateScoreboard();
 updateTensionDisplay();

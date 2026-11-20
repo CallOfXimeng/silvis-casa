@@ -55,7 +55,9 @@ We make a comparison between two regimes: Gaussian and non-Gaussian astrophysica
 Start from the complex amplitude in the $I$-th frequency bin
 
 $$
-C_I^a = \sum_i c_{I,i}^a e^{i\Phi_{I,i}}, 
+\delta t^a(\omega_I) = \sum_i C_i^a(\omega_I),
+\quad
+C_i^a = c_i^a e^{i\Phi_i}, \quad C_I^a = \sum_i c_{I,i}^a e^{i\Phi_{I,i}}, 
 \qquad
 c_{I,i}^a = \frac{A_I^i}{2 i \omega_I} R^a_{I,i},    \tag{1}
 $$
@@ -65,7 +67,23 @@ with $I$: frequency bin, $i$: SMBHB or $\sqrt{-1}$, $a$: pulsar, $A$: amplitude,
 Here, we compute the two point correlation (2PT), as 
 
 $$
-\langle C_I^a C_I^{b*} \rangle. \tag{2}
+\left< C_I^a C_I^{b*} \right>. \tag{2}
 $$
 
 <span style="color: #8246af; font-weight: bold; font-size: 1.2em;"> Standard Gaussian (stochastic background limit) </span>
+
+By definition, the $\vec{\Omega}$ average
+
+$$
+\left< C^a C^{b*} \right>_\Omega=\left<\sum_{i,j}c_i^a c_j^{b*}e^{i(\Phi_i - \Phi_j)}\right>_\Omega.
+$$
+
+The phase in explicit form
+
+$$
+\Phi_i=\omega t-\omega \hat{\Omega}_i \cdot \vec{x}_a+\phi_i^{(0)}.
+$$
+
+$$
+e^{i(\Phi_i - \Phi_j)}=e^{i(\phi_i^{(0)} - \phi_j^{(0)})}\,e^{-i\omega(\hat{\Omega}_i \cdot \vec{x}_a - \hat{\Omega}_j \cdot \vec{x}_b)}.
+$$
