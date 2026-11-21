@@ -1,0 +1,12 @@
+<header class="navbar cosmos-nav">
+    <div class="container navbar-inner">
+      <a href="{{ '/' | relative_url }}" class="brand warp-link" aria-label="返回首页">
+        <span class="brand-dot"></span>
+        <span data-jumping-title>{{ site.title | escape }}</span>
+      </a>
+      <div class="nav-controls">
+        {% include menu.html menu=include.menu %}
+        <button class="icon-btn" id="themeToggle" aria-label="切换昼夜主题">☀ / ☾</button>
+      </div>
+    </div>
+  </header>

@@ -1,5 +1,9 @@
+---
+layout: null
+permalink: /playground/heat-engines.html
+---
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -190,9 +194,39 @@
   .foot p{margin:4px 0}
   .foot a{color:var(--cold);text-decoration:none}
   @media (prefers-reduced-motion:reduce){.engine.active{animation:none}}
+  .engine-page {
+    --bg:var(--bg-page); --card:var(--bg-card); --line:var(--border-hairline);
+    --line2:var(--border-hairline); --ink:var(--text-main); --muted:var(--text-muted);
+    --dim:var(--text-muted); --shadow:var(--shadow-soft);
+    background:var(--bg-page);
+    font-family:var(--font-sans);
+  }
+  .engine-page .head .title { color:var(--ink); font-family:var(--font-serif); }
+  .engine-page .head .title em, .engine-page .lede h1 em { color:var(--accent-primary); }
+  .engine-page .engine, .engine-page .mini, .engine-page .explain {
+    background:var(--card);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+  }
+  .engine-page .tabs, .engine-page .subtabs, .engine-page .chart-switch,
+  .engine-page .pill, .engine-page .pane, .engine-page .ro,
+  .engine-page .stat, .engine-page .facts li, .engine-page .chip:not(.car):not(.ship):not(.air):not(.theory):not(.elec),
+  .engine-page .explain-body th { background:var(--bg-subtle); }
+  .engine-page .tabs button.active, .engine-page .subtabs button.active,
+  .engine-page .chart-switch button.active, .engine-page button.play {
+    background:var(--bg-card-solid);
+  }
+  .engine-page button.play:hover { background:var(--bg-subtle); }
+  .engine-page .mini { color:var(--ink); }
+  .engine-page .mini canvas { background:#fff; border-radius:6px; }
+  .engine-page .rail { scroll-margin-top:110px; }
 </style>
+<link rel="stylesheet" href="{{ '/assets/css/cosmos.css' | relative_url }}">
 </head>
-<body>
+<body class="engine-page">
+<canvas id="cosmos-canvas" aria-hidden="true"></canvas>
+<div id="page-wrapper">
+{% include cosmos-nav.html menu=site.navigation %}
 
 <header class="head">
   <div class="wrap head-inner">
@@ -204,7 +238,6 @@
       <button data-cat="elec">⚡ 电机</button>
       <button data-cat="theory">📐 理论基准</button>
     </nav>
-    <a class="back" href="../">← 回主页</a>
   </div>
 </header>
 
@@ -5714,5 +5747,7 @@ document.addEventListener('keydown', function(e){
 
 })();
 </script>
+</div>
+<script src="{{ '/assets/js/cosmos.js' | relative_url }}"></script>
 </body>
 </html>

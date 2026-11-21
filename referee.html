@@ -2,7 +2,7 @@
 layout: null
 ---
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>⚽ 足球裁判模拟器</title>
@@ -155,8 +155,12 @@ body{padding:0}
 #game-wrapper{border-radius:0}
 }
 </style>
+  <link rel="stylesheet" href="{{ '/assets/css/cosmos.css' | relative_url }}">
 </head>
-<body>
+<body class="cosmos-game referee-page">
+    <canvas id="cosmos-canvas" aria-hidden="true"></canvas>
+    <div id="page-wrapper">
+    {% include cosmos-nav.html menu=site.navigation %}
 <div id="game-wrapper">
 <canvas id="field"></canvas>
 <div id="ui-layer">
@@ -1676,5 +1680,7 @@ function restartGame(){resultScreen.classList.remove('active');startGame();}
 
 drawField();initPlayers();players.forEach(p=>{p.x=p.tx;p.y=p.ty});drawPlayers();ball.x=ball.y=FW/2;drawBall();
 </script>
+    </div>
+    <script src="{{ '/assets/js/cosmos.js' | relative_url }}"></script>
 </body>
 </html>

@@ -1,5 +1,9 @@
+---
+layout: null
+permalink: /playground/connect-four/
+---
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -21,8 +25,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <script type="module" crossorigin src="./assets/index-LU--QtqI.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-WP8Ku-e7.css">
-  </head>
-  <body>
+    <link rel="stylesheet" href="{{ '/assets/css/cosmos.css' | relative_url }}">
+</head>
+  <body class="cosmos-game connect-four-page">
+    <canvas id="cosmos-canvas" aria-hidden="true"></canvas>
+    <div id="page-wrapper">
+    {% include cosmos-nav.html menu=site.navigation %}
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {
@@ -31,6 +39,8 @@
         });
       }
     </script>
-  </body>
+      </div>
+    <script src="{{ '/assets/js/cosmos.js' | relative_url }}"></script>
+</body>
 </html>
 
