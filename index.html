@@ -143,7 +143,7 @@ title: Home
             </div>
           </div>
           <div class="explorer-body" id="explorerContent" hidden></div>
-          <div class="reading-series" id="darkMatterReading">
+          <div class="reading-series" data-reading-topic="dm">
             <div class="reading-grid" id="readingSlides" tabindex="0" aria-label="暗物质专题文章，横向滑动切换">
               <a class="reading-card warp-link" href="{{ '/reading/dark-matter/1/' | relative_url }}">
                 <h4>直觉与图像</h4>
@@ -163,13 +163,42 @@ title: Home
               </a>
             </div>
             <div class="reading-controls">
-              <button type="button" class="icon-btn" id="readingPrev" aria-label="上一篇" aria-controls="readingSlides" disabled>←</button>
+              <button type="button" class="icon-btn" data-reading-prev aria-label="上一篇" aria-controls="readingSlides" disabled>←</button>
               <div class="reading-depth">
-                <input type="range" id="readingDepth" min="1" max="3" step="1" value="1"
+                <input type="range" data-reading-depth min="1" max="3" step="1" value="1"
                   aria-label="阅读层次" aria-valuetext="第 1 层：直觉与图像" aria-controls="readingSlides">
                 <div class="reading-ticks" aria-hidden="true"><span>直觉</span><span>力学</span><span>宇宙学</span></div>
               </div>
-              <button type="button" class="icon-btn" id="readingNext" aria-label="下一篇" aria-controls="readingSlides">→</button>
+              <button type="button" class="icon-btn" data-reading-next aria-label="下一篇" aria-controls="readingSlides">→</button>
+            </div>
+          </div>
+          <div class="reading-series" data-reading-topic="bh" hidden>
+            <div class="reading-grid" id="blackHoleSlides" tabindex="0" aria-label="黑洞专题文章，横向滑动切换">
+              <a class="reading-card warp-link" href="{{ '/reading/black-holes/1/' | relative_url }}">
+                <h4>直觉与图像</h4>
+                <p>穿过事件视界意味着什么？从轨道、吸积盘和潮汐力认识黑洞。</p>
+                <span class="exp-link">读这篇 →</span>
+              </a>
+              <a class="reading-card warp-link" href="{{ '/reading/black-holes/2/' | relative_url }}">
+                <h4>力学与天体物理</h4>
+                <p>从牛顿逃逸速度出发，看最内稳定圆轨道、黑洞阴影和吸积效率。</p>
+                <span class="reading-formula">rₛ = 2GM/c²</span>
+                <span class="exp-link">读这篇 →</span>
+              </a>
+              <a class="reading-card warp-link" href="{{ '/reading/black-holes/3/' | relative_url }}">
+                <h4>广义相对论与观测</h4>
+                <p>从史瓦西几何和爱丁顿吸积，到引力波怎样检验黑洞面积定律。</p>
+                <span class="exp-link">读这篇 →</span>
+              </a>
+            </div>
+            <div class="reading-controls">
+              <button type="button" class="icon-btn" data-reading-prev aria-label="上一篇" aria-controls="blackHoleSlides" disabled>←</button>
+              <div class="reading-depth">
+                <input type="range" data-reading-depth min="1" max="3" step="1" value="1"
+                  aria-label="阅读层次" aria-valuetext="第 1 层：直觉与图像" aria-controls="blackHoleSlides">
+                <div class="reading-ticks" aria-hidden="true"><span>直觉</span><span>力学</span><span>相对论</span></div>
+              </div>
+              <button type="button" class="icon-btn" data-reading-next aria-label="下一篇" aria-controls="blackHoleSlides">→</button>
             </div>
           </div>
         </div>
@@ -238,33 +267,7 @@ title: Home
         }
       },
       dm: { color: "#7C3AED", darkColor: "#A78BFA" },
-      bh: {
-        color: "#D97706", darkColor: "#FBBF24",
-        lv1: {
-          badge: "黑洞 · LV.1 直觉与比喻",
-          title: "连光都无法逃脱的宇宙单向瀑布",
-          text: "想象一条流速越来越快的河流，越靠近瀑布边缘水流越急。在某个临界点，水流速度超过了小船的最大马力——一旦越过这条线（事件视界），无论怎么拼命划桨，都只能被卷向深渊。",
-          formula: "R_s = 2 G M / c²  (史瓦西半径：质量压缩的临界边界)",
-          meta1: "单向膜边界: 事件视界 (Event Horizon)",
-          meta2: "直接成像: 事件视界望远镜 (EHT) 黑洞阴影"
-        },
-        lv2: {
-          badge: "黑洞 · LV.2 物理图景",
-          title: "吸积盘、相对论性喷流与引力透镜光环",
-          text: "黑洞本身不发光，但周围被捕获的气体在角动量守恒下形成炽热的「吸积盘」，摩擦释放出耀眼的 X 射线。强引力场还会严重弯曲光线路径，使我们能同时看到黑洞背面的吸积盘影像。",
-          formula: "z + 1 = ( 1 - R_s / r )⁻¹/²  (视界附近趋于无限大引力红移)",
-          meta1: "黑洞无毛定理: 仅由质量 M、自旋 J、电荷 Q 决定",
-          meta2: "经典度规解: 史瓦西静态黑洞 & 克尔旋转黑洞"
-        },
-        lv3: {
-          badge: "黑洞 · LV.3 进阶推导",
-          title: "克尔度规与霍金辐射的热力学对应",
-          text: "旋转黑洞的外视界与静界之间存在「能层」，可通过彭罗斯过程提取旋转能；结合弯曲时空量子场论，黑洞具有与事件视界面积成正比的贝肯斯坦-霍金熵。",
-          formula: "S_BH = ( k_B c³ A ) / ( 4 G ℏ ) ,   T_H = ℏ c³ / ( 8 π G M k_B )",
-          meta1: "内部结构: 环状奇点 (Ring Singularity) + 能层",
-          meta2: "理论前沿: 黑洞信息悖论与全息原理"
-        }
-      }
+      bh: { color: "#A95A12", darkColor: "#FBBF24" }
     };
 
     let currentTopic = "dm", currentLevel = "lv1";
@@ -278,8 +281,10 @@ title: Home
 
     function renderExplorer() {
       updateAccentColor();
-      const isReading = currentTopic === 'dm';
-      document.getElementById('darkMatterReading').hidden = !isReading;
+      const isReading = currentTopic !== 'gw';
+      document.querySelectorAll('[data-reading-topic]').forEach(series => {
+        series.hidden = series.dataset.readingTopic !== currentTopic;
+      });
       document.getElementById('explorerLevels').hidden = isReading;
       explorerContent.hidden = isReading;
       if (isReading) return;
@@ -337,37 +342,40 @@ title: Home
 
     document.addEventListener('cosmos-theme-change', updateAccentColor);
 
-    const readingSlides = document.getElementById('readingSlides');
-    const readingPrev = document.getElementById('readingPrev');
-    const readingNext = document.getElementById('readingNext');
-    const readingDepth = document.getElementById('readingDepth');
-    const readingCount = readingSlides.children.length;
-    const readingIndex = () => Math.round(readingSlides.scrollLeft / (readingSlides.clientWidth || 1));
+    document.querySelectorAll('[data-reading-topic]').forEach(series => {
+      const readingSlides = series.querySelector('.reading-grid');
+      const readingPrev = series.querySelector('[data-reading-prev]');
+      const readingNext = series.querySelector('[data-reading-next]');
+      const readingDepth = series.querySelector('[data-reading-depth]');
+      const readingCount = readingSlides.children.length;
+      const readingIndex = () => Math.round(readingSlides.scrollLeft / (readingSlides.clientWidth || 1));
 
-    function goToReading(index, immediate = false) {
-      const target = Math.max(0, Math.min(readingCount - 1, index));
-      readingSlides.scrollTo({
-        left: target * readingSlides.clientWidth,
-        behavior: immediate || reducedMotion.matches ? 'instant' : 'smooth'
+      function goToReading(index, immediate = false) {
+        const target = Math.max(0, Math.min(readingCount - 1, index));
+        readingSlides.scrollTo({
+          left: target * readingSlides.clientWidth,
+          behavior: immediate || reducedMotion.matches ? 'instant' : 'smooth'
+        });
+      }
+
+      readingDepth.addEventListener('input', () => goToReading(Number(readingDepth.value) - 1, true));
+      readingPrev.addEventListener('click', () => goToReading(readingIndex() - 1));
+      readingNext.addEventListener('click', () => goToReading(readingIndex() + 1));
+      readingSlides.addEventListener('keydown', event => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        goToReading(readingIndex() + (event.key === 'ArrowRight' ? 1 : -1));
       });
-    }
-
-    readingDepth.addEventListener('input', () => goToReading(Number(readingDepth.value) - 1, true));
-    readingPrev.addEventListener('click', () => goToReading(readingIndex() - 1));
-    readingNext.addEventListener('click', () => goToReading(readingIndex() + 1));
-    readingSlides.addEventListener('keydown', event => {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-      event.preventDefault();
-      goToReading(readingIndex() + (event.key === 'ArrowRight' ? 1 : -1));
+      readingSlides.addEventListener('scroll', () => {
+        if (series.hidden) return;
+        const index = Math.max(0, Math.min(readingCount - 1, readingIndex()));
+        readingDepth.value = index + 1;
+        const title = readingSlides.children[index].querySelector('h4').textContent;
+        readingDepth.setAttribute('aria-valuetext', '第 ' + (index + 1) + ' 层：' + title);
+        readingPrev.disabled = index === 0;
+        readingNext.disabled = index === readingCount - 1;
+      }, { passive: true });
     });
-    readingSlides.addEventListener('scroll', () => {
-      const index = readingIndex();
-      readingDepth.value = index + 1;
-      const title = readingSlides.children[index].querySelector('h4').textContent;
-      readingDepth.setAttribute('aria-valuetext', '第 ' + (index + 1) + ' 层：' + title);
-      readingPrev.disabled = index === 0;
-      readingNext.disabled = index === readingCount - 1;
-    }, { passive: true });
 
     const photos = [
       {% assign photo_extensions = '.webp,.jpg,.jpeg,.png,.avif' | split: ',' %}
